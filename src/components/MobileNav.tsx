@@ -1,11 +1,14 @@
+import { faGear, faMapLocationDot, faSpa } from '@fortawesome/free-solid-svg-icons'
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useStore } from '../store/useStore'
 import type { MobileView } from '../store/useStore'
 import styles from './mobilenav.module.css'
 
-const TABS: { view: MobileView; icon: string; label: string }[] = [
-  { view: 'map', icon: '🗺️', label: 'Map' },
-  { view: 'controls', icon: '🍯', label: 'Setup' },
-  { view: 'results', icon: '🌸', label: 'Forage' },
+const TABS: { view: MobileView; icon: IconDefinition; label: string }[] = [
+  { view: 'map', icon: faMapLocationDot, label: 'Map' },
+  { view: 'controls', icon: faGear, label: 'Setup' },
+  { view: 'results', icon: faSpa, label: 'Forage' },
 ]
 
 export function MobileNav() {
@@ -25,9 +28,7 @@ export function MobileNav() {
             aria-label={label}
             onClick={() => setMobileView(view)}
           >
-            <span className={styles.icon} aria-hidden="true">
-              {icon}
-            </span>
+            <FontAwesomeIcon icon={icon} className={styles.icon} />
             {label}
           </button>
         )
