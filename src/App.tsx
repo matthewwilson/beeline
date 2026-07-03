@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { ControlsPanel } from './components/ControlsPanel'
 import { FlowerPicker } from './components/FlowerPicker'
+import { MobileNav } from './components/MobileNav'
 import { ResultsPanel } from './components/ResultsPanel'
 import { MapView } from './map/MapView'
 import { useStore } from './store/useStore'
@@ -21,19 +22,21 @@ function locateFirstVisit(flyTo: (lat: number, lon: number, zoom: number) => voi
 export function App() {
   const init = useStore((s) => s.init)
   const flyTo = useStore((s) => s.flyTo)
+  const mobileView = useStore((s) => s.mobileView)
   useEffect(() => {
     init()
     locateFirstVisit(flyTo)
   }, [init, flyTo])
 
   return (
-    <div className={styles.app}>
+    <div className={styles.app} data-mobile-view={mobileView}>
       <div className={styles.mapWrap}>
         <MapView />
       </div>
       <ControlsPanel />
       <ResultsPanel />
       <FlowerPicker />
+      <MobileNav />
     </div>
   )
 }

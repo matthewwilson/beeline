@@ -17,6 +17,8 @@ import type { CurrentWeather, Feature, Flower, ForageKey, Hive, LatLon, PollenKe
 
 export type ForageStatus = 'idle' | 'scanning' | 'busy' | 'empty' | 'ready'
 
+export type MobileView = 'map' | 'controls' | 'results'
+
 interface WeatherState {
   current: CurrentWeather | null
   gddTotal: number | null
@@ -68,9 +70,11 @@ interface BeeState {
   pendingFlower: LatLon | null
   showBeeFlights: boolean
   status: string
+  mobileView: MobileView
   flyRequest: { lat: number; lon: number; zoom: number; nonce: number } | null
 
   init: () => void
+  setMobileView: (v: MobileView) => void
   setStatus: (msg: string) => void
   setSeason: (s: Season) => void
   togglePollen: (k: PollenKey) => void
@@ -148,9 +152,12 @@ export const useStore = create<BeeState>((set, get) => {
     pendingFlower: null,
     showBeeFlights: false,
     status: '',
+    mobileView: 'map',
     flyRequest: null,
 
     init: () => set({ hives: loadHives(), flowers: loadFlowers(), myHiveIds: loadMyHiveIds() }),
+
+    setMobileView: (mobileView) => set({ mobileView }),
 
     setStatus: (msg) => set({ status: msg }),
 
@@ -165,7 +172,7 @@ export const useStore = create<BeeState>((set, get) => {
 
     selectHive: (hive) => {
       const token = ++selectionToken
-      set({ activeHive: hive })
+      set({ activeHive: hive, mobileView: 'results' })
       void loadWeather(hive, token)
       void loadBiosecurity(hive, token)
       void loadForage(hive, token)
@@ -246,6 +253,6 @@ export const useStore = create<BeeState>((set, get) => {
       set({ features: mergeFeatures(get().landFeatures, next, hive) })
     },
 
-    setPlacingFlower: (v) => set({ placingFlower: v }),
+    setPlacingFlower: (v) => set(v ? { placingFlower: v, mobileView: 'map' } : { placingFlower: v }),
   }
 })
