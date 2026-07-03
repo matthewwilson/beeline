@@ -172,7 +172,7 @@ a:hover {
   height: 9px;
   border-radius: 50%;
   background: currentColor;
-  box-shadow: 0 0 7px 1px currentColor;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 9px 2px currentColor;
 }
 
 .pin-pop__title {
