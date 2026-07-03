@@ -25,6 +25,10 @@ export const FORAGE_PLANTS: ForagePlant[] = [
   { name: 'Phacelia', key: 'garden' },
   { name: 'Borage', key: 'garden' },
   { name: 'Comfrey', key: 'garden' },
+  { name: 'Lavender', key: 'garden' },
+  { name: 'Rose', key: 'garden' },
+  { name: 'Foxglove', key: 'garden' },
+  { name: 'Peony', key: 'garden' },
 ]
 
 // Fallback class for a free-text plant.
