@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BeeLine — where are your bees foraging?</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --honey: #f6a800;
+      --honey-dark: #c47f00;
+      --ink: #2b2118;
+      --panel: rgba(255, 251, 242, 0.96);
+      --border: #e7d7ba;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--ink); }
+    #map { position: absolute; inset: 0; z-index: 1; }
+
+    .panel {
+      position: absolute; z-index: 1000;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 8px 28px rgba(70, 50, 10, 0.18);
+      backdrop-filter: blur(4px);
+    }
+    #controls { top: 14px; left: 14px; width: 320px; max-width: calc(100vw - 28px); padding: 16px 18px; }
+    #results { top: 14px; right: 14px; width: 320px; max-width: calc(100vw - 28px); max-height: calc(100vh - 28px); overflow-y: auto; padding: 16px 18px; }
+    @media (max-width: 760px) {
+      #controls, #results { position: static; width: auto; margin: 10px; }
+      body { overflow-y: auto; }
+      #map { position: relative; height: 55vh; inset: auto; }
+    }
+
+    h1 { font-size: 20px; margin: 0 0 2px; display: flex; align-items: center; gap: 8px; }
+    h1 .sub { font-size: 12px; font-weight: 500; color: #8a7654; }
+    h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; color: #8a7654; margin: 18px 0 8px; }
+    p.hint { font-size: 12.5px; line-height: 1.45; color: #6f5f45; margin: 8px 0; }
+
+    .row { display: flex; gap: 8px; margin: 10px 0; }
+    button, select {
+      font: inherit; border-radius: 9px; border: 1px solid var(--border);
+      padding: 9px 12px; background: #fff; cursor: pointer; color: var(--ink);
+    }
+    button.primary { background: var(--honey); border-color: var(--honey-dark); color: #3a2c05; font-weight: 700; }
+    button.primary:hover { background: var(--honey-dark); color: #fff; }
+    button:hover { border-color: var(--honey); }
+    select { flex: 1; }
+    label.field { font-size: 12px; font-weight: 600; color: #6f5f45; display: block; margin-bottom: 3px; }
+    .link-btn { font-size: 11px; background: none; border: none; color: #b06a00; cursor: pointer; padding: 2px 4px; margin-left: 6px; text-decoration: underline; }
+    .link-btn:hover { color: var(--honey-dark); }
+
+    .swatches { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px; }
+    .swatch {
+      width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+      border: 2px solid #fff; box-shadow: 0 0 0 1px var(--border);
+      transition: transform 0.1s;
+    }
+    .swatch:hover { transform: scale(1.12); }
+    .swatch.active { box-shadow: 0 0 0 3px var(--honey); transform: scale(1.12); }
+
+    .legend { display: grid; grid-template-columns: auto 1fr; gap: 5px 8px; font-size: 12px; align-items: center; }
+    .legend .dot { width: 13px; height: 13px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.2); }
+
+    .dest {
+      border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; margin-bottom: 8px;
+      cursor: pointer; background: #fff; transition: border-color 0.1s;
+    }
+    .dest:hover { border-color: var(--honey); }
+    .dest.dim { opacity: 0.4; }
+    .dest .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .dest .nm { font-weight: 700; font-size: 13.5px; }
+    .dest .pct { font-weight: 700; color: var(--honey-dark); font-size: 13px; white-space: nowrap; }
+    .dest .meta { font-size: 11.5px; color: #7a6a4d; margin-top: 3px; }
+    .bar { height: 5px; border-radius: 3px; background: #eee; margin-top: 6px; overflow: hidden; }
+    .bar > span { display: block; height: 100%; background: var(--honey); }
+
+    .empty { font-size: 13px; color: #8a7654; padding: 8px 0; }
+    .status { font-size: 12px; color: var(--honey-dark); min-height: 16px; margin-top: 6px; }
+    .pollen-tag { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.25); vertical-align: middle; margin-right: 4px; }
+    .hive-badge { font-size: 11px; background: #fff4d6; border: 1px solid var(--border); border-radius: 20px; padding: 2px 9px; color: #7a5c00; }
+    .bee-icon { font-size: 22px; line-height: 1; text-align: center; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3)); }
+    .bee-icon.mine { width: 28px; height: 28px; line-height: 26px; border-radius: 50%; background: rgba(246,168,0,0.30); border: 2px solid var(--honey-dark); box-shadow: 0 0 10px rgba(246,168,0,0.9); }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div id="controls" class="panel">
+    <h1>🐝 BeeLine <span class="sub">forage map</span></h1>
+    <p class="hint">Add your hives, then click one to see where its bees most likely forage — and what pollen colours to expect at the entrance. Your hives are saved in this browser.</p>
+
+    <div class="row">
+      <button class="primary" id="locateBtn" style="flex:1">📍 Add my hive here</button>
+    </div>
+    <p class="hint" style="margin-top:-2px">…or click anywhere on the map to drop a hive.</p>
+    <div class="status" id="status"></div>
+
+    <h2>Season</h2>
+    <div class="row">
+      <select id="season">
+        <option value="spring">🌸 Spring (blossom & rape)</option>
+        <option value="summer" selected>☀️ Summer (meadows & lime)</option>
+        <option value="late">🍂 Late summer (heather & ivy)</option>
+      </select>
+    </div>
+
+    <h2>Pollen at the entrance</h2>
+    <p class="hint" style="margin-top:0">Spotting a colour on returning bees? Tap it to highlight matching sources.</p>
+    <div class="swatches" id="swatches"></div>
+
+    <h2>Forage legend</h2>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div id="results" class="panel">
+    <h1 style="font-size:16px">Likely destinations</h1>
+    <div id="activeHive"></div>
+    <div id="destList"><p class="empty">Add a hive, then click it to analyse its foraging range.</p></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // ---- Forage sources: OSM tag -> metadata ----
+    const FORAGE = {
+      orchard:    { label: 'Orchard',    base: 10, colour: '#ff9ecb', pollen: 'cream',  plant: 'top-fruit blossom' },
+      heath:      { label: 'Heath',      base: 8,  colour: '#a06cd5', pollen: 'grey',   plant: 'heather' },
+      meadow:     { label: 'Meadow',     base: 8,  colour: '#8fd14f', pollen: 'mixed',  plant: 'wildflowers' },
+      allotments: { label: 'Allotments', base: 7,  colour: '#2bb3a3', pollen: 'brown',  plant: 'veg & fruit' },
+      garden:     { label: 'Garden',     base: 7,  colour: '#39c5bb', pollen: 'mixed',  plant: 'garden flowers' },
+      farmland:   { label: 'Farmland',   base: 6,  colour: '#f2c000', pollen: 'yellow', plant: 'oilseed rape / crops' },
+      park:       { label: 'Park',       base: 5,  colour: '#6ab04c', pollen: 'mixed',  plant: 'verges & ornamentals' },
+      scrub:      { label: 'Scrub',      base: 5,  colour: '#8a9a5b', pollen: 'green',  plant: 'bramble' },
+      wood:       { label: 'Woodland',   base: 4,  colour: '#2e7d32', pollen: 'green',  plant: 'lime / willow' },
+    };
+    // Map raw OSM tag values onto our forage keys
+    const TAG_TO_KEY = {
+      orchard: 'orchard', meadow: 'meadow', farmland: 'farmland', allotments: 'allotments',
+      forest: 'wood', wood: 'wood', heath: 'heath', scrub: 'scrub', garden: 'garden', park: 'park',
+    };
+
+    const SEASON = {
+      spring: { orchard: 1.6, farmland: 1.3, heath: 0.4, garden: 1.1 },
+      summer: { meadow: 1.3, garden: 1.2, wood: 1.3, orchard: 0.6, farmland: 0.9 },
+      late:   { heath: 2.2, scrub: 1.3, orchard: 0.2, farmland: 0.5, wood: 0.8 },
+    };
+
+    // Pollen colour palette -> swatch colour + matching forage keys
+    const POLLEN = {
+      yellow: { colour: '#f2c000', label: 'Bright yellow', keys: ['farmland', 'wood'],           note: 'oilseed rape, willow, gorse' },
+      orange: { colour: '#ef8a17', label: 'Orange',        keys: ['farmland', 'meadow'],          note: 'dandelion, rape' },
+      cream:  { colour: '#f3e9cf', label: 'Cream / white',  keys: ['orchard', 'scrub'],            note: 'top fruit, bramble' },
+      grey:   { colour: '#9b9186', label: 'Grey / dull',    keys: ['heath'],                       note: 'heather' },
+      green:  { colour: '#7cae5b', label: 'Green',          keys: ['wood', 'scrub'],               note: 'lime, some crops' },
+      purple: { colour: '#8a63d2', label: 'Blue / purple',  keys: ['meadow', 'garden'],            note: 'phacelia, bluebell' },
+      brown:  { colour: '#8a5a2b', label: 'Brown',          keys: ['allotments', 'farmland'],      note: 'field beans' },
+    };
+
+    const RING_KM = [1, 3, 5];
+    // Overpass mirrors are raced in parallel (Promise.any) — availability/latency varies a lot.
+    const OVERPASS = [
+      'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.private.coffee/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+    ];
+    const MAX_MARKERS = 150;
+    const STORAGE_KEY = 'beeline-hives';
+
+    // ---- State ----
+    const map = L.map('map', { zoomControl: true }).setView([54.607, -5.926], 6); // Northern Ireland-ish default
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    const hiveLayer = L.layerGroup().addTo(map);
+    const forageLayer = L.layerGroup().addTo(map);
+    const ringLayer = L.layerGroup().addTo(map);
+
+    let hivesById = new Map();
+    let activeHive = null;
+    let features = [];        // cached Overpass results for the active hive
+    let selectedPollen = null;
+    let fetchToken = 0;       // guards against stale async results
+
+    const $ = (id) => document.getElementById(id);
+    const statusEl = $('status');
+
+    function setStatus(msg) { statusEl.textContent = msg || ''; }
+
+    // ---- Geometry helpers ----
+    function distanceMetres(a, b) {
+      const R = 6371000, toRad = (d) => d * Math.PI / 180;
+      const dLat = toRad(b.lat - a.lat), dLon = toRad(b.lon - a.lon);
+      const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(s));
+    }
+    function bearing(a, b) {
+      const toRad = (d) => d * Math.PI / 180;
+      const y = Math.sin(toRad(b.lon - a.lon)) * Math.cos(toRad(b.lat));
+      const x = Math.cos(toRad(a.lat)) * Math.sin(toRad(b.lat)) -
+                Math.sin(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.cos(toRad(b.lon - a.lon));
+      const deg = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+      const points = ['N','NE','E','SE','S','SW','W','NW'];
+      return points[Math.round(deg / 45) % 8];
+    }
+
+    // ---- Hives (saved in this browser via localStorage) ----
+    function beeIcon() {
+      return L.divIcon({ className: '', html: '<div class="bee-icon mine">🐝</div>', iconSize: [28, 28], iconAnchor: [14, 14] });
+    }
+
+    function loadHives() {
+      let list = [];
+      try { list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { list = []; }
+      hivesById = new Map(list.filter(h => h && typeof h.id === 'number').map((h) => [h.id, h]));
+      drawHives();
+    }
+
+    function saveHives() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...hivesById.values()]));
+    }
+
+    function drawHives() {
+      hiveLayer.clearLayers();
+      for (const h of hivesById.values()) {
+        const m = L.marker([h.lat, h.lon], { icon: beeIcon(), title: h.name });
+        m.bindTooltip(h.name, { direction: 'top', offset: [0, -14] });
+        m.on('click', () => selectHive(h));
+        m.addTo(hiveLayer);
+      }
+    }
+
+    function addHive(lat, lon) {
+      const name = prompt('Name this hive (e.g. "Maggie\'s apiary"):', 'My hive');
+      if (name === null) return;
+      const id = Math.max(0, ...hivesById.keys()) + 1;
+      const hive = { id, name: (name.trim() || 'My hive').slice(0, 60), lat, lon, createdAt: new Date().toISOString() };
+      hivesById.set(id, hive);
+      saveHives();
+      drawHives();
+      setStatus('Hive saved in this browser.');
+      selectHive(hive);
+    }
+
+    function removeHive(id) {
+      hivesById.delete(id);
+      saveHives();
+      drawHives();
+      if (activeHive && activeHive.id === id) {
+        activeHive = null;
+        features = [];
+        ringLayer.clearLayers();
+        forageLayer.clearLayers();
+        $('activeHive').innerHTML = '';
+        $('destList').innerHTML = '<p class="empty">Add a hive, then click it to analyse its foraging range.</p>';
+      }
+    }
+
+    // ---- Select a hive and analyse it ----
+    function selectHive(hive) {
+      activeHive = hive;
+      drawRings(hive);
+      map.flyTo([hive.lat, hive.lon], 13, { duration: 0.6 });
+      $('activeHive').innerHTML =
+        `<span class="hive-badge">🐝 ${escapeHtml(hive.name)}</span>` +
+        `<button class="link-btn" id="removeHiveBtn">Remove hive</button>`;
+      $('removeHiveBtn').addEventListener('click', () => removeHive(hive.id));
+      loadForage(hive);
+    }
+
+    function drawRings(hive) {
+      ringLayer.clearLayers();
+      RING_KM.slice().reverse().forEach((km) => {
+        L.circle([hive.lat, hive.lon], {
+          radius: km * 1000,
+          color: 'var(--honey-dark)', weight: 1, opacity: 0.5,
+          fillColor: '#f6a800', fillOpacity: km === 1 ? 0.10 : 0.04,
+        }).addTo(ringLayer).bindTooltip(`${km} km`, { permanent: false });
+      });
+    }
+
+    // ---- Overpass forage fetch ----
+    function buildQuery(lat, lon) {
+      return `[out:json][timeout:25];
+(
+  way["landuse"~"orchard|meadow|farmland|allotments|forest|heath"](around:5000,${lat},${lon});
+  way["leisure"~"garden|park"](around:5000,${lat},${lon});
+  way["natural"~"heath|scrub|wood"](around:5000,${lat},${lon});
+);
+out center tags;`;
+    }
+
+    async function loadForage(hive) {
+      const token = ++fetchToken;
+      features = [];
+      forageLayer.clearLayers();
+      $('destList').innerHTML = '<p class="empty">🔎 Scanning the landscape around this hive…</p>';
+      setStatus('Fetching forage from OpenStreetMap…');
+
+      const query = buildQuery(hive.lat, hive.lon);
+      const attempt = (endpoint) => fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(query),
+        signal: AbortSignal.timeout(30000),
+      }).then(async (res) => {
+        if (!res.ok) throw new Error('status ' + res.status);
+        const json = await res.json();
+        return json.elements || [];
+      });
+
+      let elements = null;
+      try {
+        elements = await Promise.any(OVERPASS.map(attempt));
+      } catch (e) { /* every mirror failed */ }
+
+      if (token !== fetchToken) return; // a newer selection superseded this one
+      setStatus('');
+
+      if (!elements) {
+        $('destList').innerHTML = '<p class="empty">⚠️ Forage data service is busy. Give it a few seconds and click the hive again.</p>';
+        return;
+      }
+
+      features = elements.map((el) => {
+        const center = el.center || {};
+        const tags = el.tags || {};
+        const rawVal = tags.landuse || tags.natural || tags.leisure;
+        const key = TAG_TO_KEY[rawVal];
+        if (!key || center.lat == null) return null;
+        const pt = { lat: center.lat, lon: center.lon };
+        return {
+          key,
+          name: tags.name || FORAGE[key].label,
+          lat: pt.lat, lon: pt.lon,
+          distance: distanceMetres(hive, pt),
+          dir: bearing(hive, pt),
+        };
+      }).filter(Boolean).filter((f) => f.distance <= 5000);
+
+      if (!features.length) {
+        $('destList').innerHTML = '<p class="empty">No mapped forage nearby — try a hive near farmland or a town.</p>';
+        return;
+      }
+      render();
+    }
+
+    // ---- Scoring + rendering ----
+    function scoreOf(f) {
+      const meta = FORAGE[f.key];
+      const seasonMult = (SEASON[$('season').value] || {})[f.key] || 1;
+      const decay = Math.exp(-f.distance / 1500);
+      let score = meta.base * seasonMult * decay;
+      if (selectedPollen && !POLLEN[selectedPollen].keys.includes(f.key)) score *= 0.15;
+      return score;
+    }
+
+    function render() {
+      forageLayer.clearLayers();
+      const scored = features.map((f) => ({ ...f, score: scoreOf(f) })).sort((a, b) => b.score - a.score);
+      const top = scored.slice(0, 12);
+      const maxScore = top.length ? top[0].score : 1;
+
+      // markers (cap to the strongest sources so dense cities stay readable)
+      for (const f of scored.slice(0, MAX_MARKERS)) {
+        const meta = FORAGE[f.key];
+        const matches = !selectedPollen || POLLEN[selectedPollen].keys.includes(f.key);
+        const marker = L.circleMarker([f.lat, f.lon], {
+          radius: 5 + 7 * (f.score / maxScore),
+          color: '#fff', weight: 1,
+          fillColor: meta.colour, fillOpacity: matches ? 0.9 : 0.15,
+        });
+        marker.bindPopup(
+          `<strong>${escapeHtml(f.name)}</strong><br>${meta.label} · ${meta.plant}` +
+          `<br>${fmtDist(f.distance)} · ${f.dir}` +
+          `<br><span class="pollen-tag" style="background:${pollenColour(meta.pollen)}"></span>${meta.pollen} pollen`
+        );
+        marker._key = f.key;
+        marker.addTo(forageLayer);
+      }
+
+      // ranked list
+      const rows = top.map((f) => {
+        const meta = FORAGE[f.key];
+        const pct = Math.round(100 * f.score / maxScore);
+        const matches = !selectedPollen || POLLEN[selectedPollen].keys.includes(f.key);
+        return `<div class="dest ${matches ? '' : 'dim'}" data-lat="${f.lat}" data-lon="${f.lon}">
+          <div class="top">
+            <span class="nm"><span class="pollen-tag" style="background:${pollenColour(meta.pollen)}"></span>${escapeHtml(f.name)}</span>
+            <span class="pct">${pct}%</span>
+          </div>
+          <div class="meta">${meta.label} · ${fmtDist(f.distance)} · heading ${f.dir} · ${meta.pollen} pollen</div>
+          <div class="bar"><span style="width:${pct}%"></span></div>
+        </div>`;
+      }).join('');
+      $('destList').innerHTML = rows;
+
+      document.querySelectorAll('.dest').forEach((el) => {
+        el.addEventListener('click', () => {
+          map.flyTo([+el.dataset.lat, +el.dataset.lon], 15, { duration: 0.6 });
+        });
+      });
+    }
+
+    function pollenColour(name) {
+      const found = Object.values(POLLEN).find((p) => p.label.toLowerCase().includes(name));
+      if (found) return found.colour;
+      if (name === 'mixed') return 'conic-gradient(from 0deg, #f2c000, #ef8a17, #8a63d2, #7cae5b, #f2c000)';
+      return '#ccc';
+    }
+    function fmtDist(m) { return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`; }
+    function escapeHtml(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+    // ---- Build the UI chrome ----
+    function buildLegend() {
+      $('legend').innerHTML = Object.entries(FORAGE)
+        .sort((a, b) => b[1].base - a[1].base)
+        .map(([, m]) => `<span class="dot" style="background:${m.colour}"></span><span>${m.label} <span style="color:#9b8a68">(${m.plant})</span></span>`)
+        .join('');
+    }
+    function buildSwatches() {
+      $('swatches').innerHTML = Object.entries(POLLEN)
+        .map(([k, p]) => `<div class="swatch" title="${p.label} — ${p.note}" data-key="${k}" style="background:${p.colour}"></div>`)
+        .join('');
+      document.querySelectorAll('.swatch').forEach((el) => {
+        el.addEventListener('click', () => {
+          const key = el.dataset.key;
+          selectedPollen = selectedPollen === key ? null : key;
+          document.querySelectorAll('.swatch').forEach((s) => s.classList.toggle('active', s.dataset.key === selectedPollen));
+          setStatus(selectedPollen ? `Highlighting sources with ${POLLEN[selectedPollen].label.toLowerCase()} pollen (${POLLEN[selectedPollen].note})` : '');
+          if (features.length) render();
+        });
+      });
+    }
+
+    // ---- Wire up events ----
+    $('locateBtn').addEventListener('click', () => {
+      if (!navigator.geolocation) return setStatus('Geolocation not available — click the map instead.');
+      setStatus('Finding your location…');
+      navigator.geolocation.getCurrentPosition(
+        (pos) => addHive(pos.coords.latitude, pos.coords.longitude),
+        () => setStatus('Location denied — click the map to place your hive.'),
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    });
+    map.on('click', (e) => addHive(e.latlng.lat, e.latlng.lng));
+    $('season').addEventListener('change', () => { if (features.length) render(); });
+
+    buildLegend();
+    buildSwatches();
+    loadHives();
+  </script>
+</body>
+</html>
