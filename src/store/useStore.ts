@@ -66,6 +66,7 @@ interface BeeState {
   biosecurity: BioState
   placingFlower: boolean
   pendingFlower: LatLon | null
+  showBeeFlights: boolean
   status: string
   flyRequest: { lat: number; lon: number; zoom: number; nonce: number } | null
 
@@ -73,6 +74,7 @@ interface BeeState {
   setStatus: (msg: string) => void
   setSeason: (s: Season) => void
   togglePollen: (k: PollenKey) => void
+  toggleBeeFlights: () => void
   flyTo: (lat: number, lon: number, zoom: number) => void
   selectHive: (hive: Hive) => void
   addHive: (lat: number, lon: number, name: string) => void
@@ -144,6 +146,7 @@ export const useStore = create<BeeState>((set, get) => {
     biosecurity: initialBio,
     placingFlower: false,
     pendingFlower: null,
+    showBeeFlights: false,
     status: '',
     flyRequest: null,
 
@@ -154,6 +157,8 @@ export const useStore = create<BeeState>((set, get) => {
     setSeason: (season) => set({ season }),
 
     togglePollen: (k) => set((s) => ({ selectedPollen: s.selectedPollen === k ? null : k })),
+
+    toggleBeeFlights: () => set((s) => ({ showBeeFlights: !s.showBeeFlights })),
 
     flyTo: (lat, lon, zoom) =>
       set((s) => ({ flyRequest: { lat, lon, zoom, nonce: (s.flyRequest?.nonce ?? 0) + 1 } })),
