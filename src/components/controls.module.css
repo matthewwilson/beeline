@@ -55,6 +55,9 @@
 .addHint {
   margin: 2px 0 0;
 }
+.photoInput {
+  display: none;
+}
 
 .status {
   font-family: var(--font-mono);
