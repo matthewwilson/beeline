@@ -42,3 +42,18 @@ beekeeping forage calendars, and the All-Ireland Pollinator Plan.
 ## GDD baseline
 `GDD_BASELINE` is a rough NI-lowland cumulative growing-degree-day (base 5C) curve by day-of-year,
 used only to express the current year as "~N days ahead/behind average". It is an approximation.
+
+## Field flowers (`FORAGE_PLANTS`)
+The "add a flower" field log maps each curated plant to an existing forage class so it inherits
+that class's colour, pollen colour and Baude-derived base value; the observation is then scored
+with the highest confidence tier (`observed` ×1.5 > `surveyed` ×1.25 > `osm` ×1.0), since a plant
+you saw in person is stronger evidence than a land-use polygon. Mapping: hawthorn/blackthorn→hedge;
+bramble/gorse/ivy→scrub; heather→heath; white clover/dandelion/knapweed→meadow; willow/lime/
+sycamore→wood; oilseed rape/field beans→farmland; apple→orchard; phacelia/borage/comfrey→garden.
+Free-text "other" → `garden` (a moderate default).
+
+## Gap-filling plants (`GAP_PLANTS`)
+Suggestions for filling a detected forage gap are drawn from the All-Ireland Pollinator Plan and
+RHS Plants for Pollinators, keyed by approximate flowering month. The classic UK/Ireland "June
+gap" (between spring blossom/oilseed rape and mid-summer bramble/clover) is filled by e.g.
+phacelia, borage, white clover, comfrey, cotoneaster, field beans, lime and foxglove.

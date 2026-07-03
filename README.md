@@ -24,6 +24,13 @@ richest nectar/pollen sources closest to home).
   pulled from OSM and scored.
 - **Pollen colour map** — each source is tinted by its plant's characteristic pollen colour, and a
   swatch picker highlights the sources matching the pollen you see at the hive entrance.
+- **Field flower log** 🌼 — walk up to a plant and log it (from a curated NI forage-plant list, or
+  free text). Saved in your browser; each sighting becomes a *high-confidence* forage point that
+  outranks generic OSM/DAERA data nearby.
+- **Forage calendar & June-gap planner** 📅 — a year-round forage-availability chart for the hive,
+  flagging lean periods (the classic June gap) and suggesting pollinator plants to fill them.
+- **Biosecurity & alerts** 🛡️ — a live "any Asian hornet records within 10 km?" check (NBN Atlas)
+  plus one-tap reporting, and NI-correct disease guidance (report to DAERA, not the GB bee unit).
 - **Your hives** — add as many hives as you like; they're saved in your browser's `localStorage`,
   so they're there next time you visit. No account, no server.
 
@@ -41,6 +48,8 @@ client-side, from free/open APIs:
 - Habitats: **DAERA/NIEA Priority Habitats**, via [OpenDataNI](https://www.opendatani.gov.uk/),
   Open Government Licence.
 - Weather: **Open-Meteo**. Map & land use: **© OpenStreetMap contributors** (ODbL).
+- Asian hornet check: **NBN Atlas** occurrence API. Planting suggestions: **All-Ireland Pollinator
+  Plan** / **RHS Plants for Pollinators**. Bee-health guidance: **DAERA** (NI).
 
 ## Running locally
 Because geolocation needs a secure context, serve it over `localhost` rather than opening the
