@@ -1,0 +1,46 @@
+/* "Apiary instrument" identity: a dark, warm chrome (smoker soot, propolis, dark wax) floating
+   over the bright map, with a honey accent and glowing wax text. Grounded in the subject and
+   deliberately away from the cream/serif/terracotta default. */
+:root {
+  color-scheme: dark;
+
+  --ink: #1b140c;
+  --ink-deep: #120d07;
+  --propolis: #2a1e12;
+  --propolis-raised: #35281a;
+
+  --honey: #f6a800;
+  --honey-soft: #ffce5b;
+  --amber: #c47f00;
+
+  --wax: #f3e7cc;
+  --wax-dim: #b8a582;
+  --wax-faint: #8c7a5c;
+
+  --comb-line: rgba(243, 231, 204, 0.14);
+  --comb-line-strong: rgba(243, 231, 204, 0.26);
+
+  --fly-good: #86c661;
+  --fly-marg: #ecb73a;
+  --fly-bad: #e4693b;
+  --surveyed: #86c661;
+  --alert: #e4693b;
+
+  --panel: rgba(24, 17, 10, 0.9);
+  --panel-solid: #1b140c;
+
+  --font-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+  --font-body: 'Hanken Grotesk Variable', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-pill: 999px;
+
+  --space: 8px;
+
+  --shadow: 0 14px 44px rgba(0, 0, 0, 0.48);
+  --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.38);
+  --ring-focus: 0 0 0 3px rgba(246, 168, 0, 0.55);
+}

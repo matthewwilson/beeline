@@ -1,0 +1,312 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+/* On small screens the app scrolls as a normal document (map, then panels). */
+@media (max-width: 820px) {
+  html,
+  body,
+  #root {
+    height: auto;
+    min-height: 100%;
+  }
+}
+
+body {
+  font-family: var(--font-body);
+  font-weight: 420;
+  color: var(--wax);
+  background: var(--ink-deep);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+a {
+  color: var(--honey);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+::selection {
+  background: var(--honey);
+  color: var(--ink-deep);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+  border-radius: var(--r-sm);
+}
+
+/* Thin warm scrollbars inside the floating panels. */
+.scroll-warm {
+  scrollbar-width: thin;
+  scrollbar-color: var(--amber) transparent;
+}
+.scroll-warm::-webkit-scrollbar {
+  width: 9px;
+}
+.scroll-warm::-webkit-scrollbar-thumb {
+  background: var(--comb-line-strong);
+  border-radius: var(--r-pill);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+.scroll-warm::-webkit-scrollbar-thumb:hover {
+  background: var(--amber);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+}
+
+/* ---- Leaflet, re-skinned to the dark instrument chrome ---- */
+.leaflet-container {
+  font-family: var(--font-body);
+  background: var(--ink-deep);
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--propolis);
+  color: var(--wax);
+  border: 1px solid var(--comb-line-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow);
+}
+.leaflet-popup-tip {
+  background: var(--propolis);
+  border: 1px solid var(--comb-line-strong);
+}
+.leaflet-popup-content {
+  margin: 11px 13px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.leaflet-popup-content a {
+  color: var(--honey-soft);
+}
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--wax-dim);
+}
+
+.leaflet-tooltip {
+  background: var(--propolis);
+  color: var(--wax);
+  border: 1px solid var(--comb-line-strong);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-sm);
+  font-weight: 500;
+}
+.leaflet-tooltip-top::before {
+  border-top-color: var(--comb-line-strong);
+}
+
+.leaflet-bar {
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: var(--panel-solid);
+  color: var(--wax);
+  border-bottom-color: var(--comb-line);
+}
+.leaflet-bar a:hover {
+  color: var(--honey);
+}
+.leaflet-control-attribution {
+  background: rgba(18, 13, 7, 0.82) !important;
+  color: var(--wax-faint) !important;
+  border-top-left-radius: var(--r-sm);
+}
+.leaflet-control-attribution a {
+  color: var(--wax-dim) !important;
+}
+
+/* ---- Map pins (Leaflet divIcon HTML lives outside React, so styled globally) ---- */
+.bee-pin,
+.flower-pin {
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55));
+}
+.bee-pin {
+  font-size: 22px;
+}
+.flower-pin {
+  font-size: 20px;
+}
+.bee-pin--mine {
+  border-radius: var(--r-pill);
+  background: radial-gradient(circle, rgba(246, 168, 0, 0.42), rgba(246, 168, 0, 0) 72%);
+  box-shadow: 0 0 0 2px var(--amber), 0 0 14px 2px rgba(246, 168, 0, 0.8);
+}
+.bee-pin--active {
+  transform: scale(1.18);
+}
+
+.pin-pop__title {
+  font-weight: 700;
+  font-size: 13.5px;
+}
+.pin-pop__meta {
+  color: var(--wax-dim);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.pin-pop__badge {
+  color: var(--surveyed);
+  font-weight: 600;
+}
+.pin-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  vertical-align: middle;
+  margin-right: 5px;
+}
+.pin-remove {
+  margin-top: 7px;
+  background: none;
+  border: 1px solid var(--comb-line-strong);
+  color: var(--honey-soft);
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+}
+.pin-remove:hover {
+  border-color: var(--honey);
+  color: var(--honey);
+}
+
+/* ---- Shared chrome atoms (used across panels; low specificity, class-only) ---- */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--comb-line-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  backdrop-filter: saturate(1.15) blur(12px);
+  -webkit-backdrop-filter: saturate(1.15) blur(12px);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--wax-dim);
+}
+
+.hint {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--wax-dim);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--wax);
+  background: var(--propolis-raised);
+  border: 1px solid var(--comb-line-strong);
+  border-radius: var(--r-md);
+  padding: 10px 13px;
+  transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease;
+}
+.btn:hover {
+  border-color: var(--honey);
+  color: var(--honey-soft);
+}
+
+.btn-primary {
+  color: var(--ink-deep);
+  font-weight: 700;
+  background: linear-gradient(180deg, var(--honey-soft), var(--honey));
+  border-color: var(--amber);
+}
+.btn-primary:hover {
+  color: var(--ink-deep);
+  background: linear-gradient(180deg, #ffd873, var(--honey-soft));
+  border-color: var(--honey);
+}
+
+.field-label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wax-dim);
+  margin-bottom: 4px;
+}
+
+.text-input,
+.select {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--wax);
+  background: var(--propolis);
+  border: 1px solid var(--comb-line-strong);
+  border-radius: var(--r-md);
+  padding: 9px 11px;
+}
+.text-input::placeholder {
+  color: var(--wax-faint);
+}
+.select {
+  appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23b8a582' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+}
+.select:hover {
+  border-color: var(--honey);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .leaflet-fade-anim .leaflet-tile {
+    transition: none !important;
+  }
+}

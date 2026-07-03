@@ -5,42 +5,66 @@ where your bees are most likely foraging — because you can't GPS-track them, b
 foraging is well understood (mostly within 1–2 km of the hive, out to ~5 km, favouring the
 richest nectar/pollen sources closest to home).
 
-**Live site:** https://matthewwilson.github.io/beeline/
+**Live site:** https://matthewwilson.github.io/beeline/ — installable as an app (PWA).
 
 ## Features
 - **Forage & bloom map** — draws the 1 / 3 / 5 km foraging rings, pulls the real green spaces
   around your hive from OpenStreetMap (orchards, meadows, gardens, farmland, heath, hedgerows,
   woods…) and ranks the **likely destinations** by forage value × bloom timing × distance.
-- **Research-grounded forage values** — the per-plant nectar values are derived from Baude et al.'s
-  measured UK nectar/pollen datasets (see [`references/forage-values.md`](references/forage-values.md)),
-  not guesswork.
+- **Research-grounded forage values** — per-plant nectar values derived from Baude et al.'s
+  measured UK nectar/pollen datasets (see [`references/forage-values.md`](references/forage-values.md)).
 - **Authoritative NI habitat layers** — supplements OSM with DAERA/NIEA **Priority Habitats**
-  (surveyed heath, species-rich grassland, peatland, fens, woodland), marked ✓ surveyed and given
+  (surveyed heath, species-rich grassland, peatland, fens, woodland), marked surveyed and given
   a confidence bonus.
-- **Live weather + dynamic bloom** — an Open-Meteo "are the bees flying today?" panel (temperature,
-  wind, rain), and an **Auto** season mode that shifts bloom timing by the year's growing-degree-day
-  anomaly instead of fixed months.
-- **Hedgerow forage** — hedges (hawthorn/blackthorn/bramble), the biggest real NI forage source, are
+- **Live weather + dynamic bloom** — an Open-Meteo "are the bees flying today?" panel, and an
+  **Auto** season mode that shifts bloom timing by the year's growing-degree-day anomaly.
+- **Hedgerow forage** — hedges (hawthorn/blackthorn/bramble), the biggest real NI forage source,
   pulled from OSM and scored.
 - **Pollen colour map** — each source is tinted by its plant's characteristic pollen colour, and a
   swatch picker highlights the sources matching the pollen you see at the hive entrance.
-- **Field flower log** 🌼 — walk up to a plant and log it (from a curated NI forage-plant list, or
-  free text). Saved in your browser; each sighting becomes a *high-confidence* forage point that
-  outranks generic OSM/DAERA data nearby.
+- **Field flower log** 🌼 — walk up to a plant and log it (curated NI list, or free text). Saved on
+  your device; each sighting becomes a high-confidence forage point that outranks generic data nearby.
 - **Forage calendar & June-gap planner** 📅 — a year-round forage-availability chart for the hive,
   flagging lean periods (the classic June gap) and suggesting pollinator plants to fill them.
 - **Biosecurity & alerts** 🛡️ — a live "any Asian hornet records within 10 km?" check (NBN Atlas)
   plus one-tap reporting, and NI-correct disease guidance (report to DAERA, not the GB bee unit).
-- **Your hives** — add as many hives as you like; they're saved in your browser's `localStorage`,
-  so they're there next time you visit. No account, no server.
+- **Your hives** — add as many hives as you like; saved in your browser's `localStorage`, no account,
+  no server.
 
-## How it works
-It's a single static `index.html` — no build step and no backend. Everything is fetched live,
-client-side, from free/open APIs:
-- **Map & land use:** OpenStreetMap tiles + the [Overpass API](https://overpass-api.de/) (four
-  mirrors raced in parallel for resilience).
-- **NI habitats:** DAERA/NIEA Priority Habitats ArcGIS FeatureServers (OGL).
-- **Weather / growing-degree-days:** [Open-Meteo](https://open-meteo.com/) (keyless).
+## Tech stack
+A **React + Vite + TypeScript** single-page app, built to static files and served from GitHub Pages.
+- **Map:** [Leaflet](https://leafletjs.com/) (imperative, wrapped in one component) + OpenStreetMap tiles.
+- **State:** a small [Zustand](https://github.com/pmndrs/zustand) store; hives/flowers persist in `localStorage`.
+- **Type & data:** self-hosted fonts (Fraunces / Hanken Grotesk / IBM Plex Mono) — no font CDN.
+- **PWA:** [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/) generates the manifest, icons and a
+  service worker. The app is **installable** and the shell works offline; live data (map tiles,
+  Overpass, DAERA, Open-Meteo, NBN) is fetched over the network and is not cached.
+
+All forage data is fetched live, client-side, from free/open APIs (Overpass, DAERA/NIEA ArcGIS,
+Open-Meteo, NBN Atlas). There is no backend.
+
+## Running locally
+Requires Node 20.19+ or 22+.
+
+```bash
+npm install
+npm run dev       # dev server (http://localhost:5173/beeline/)
+npm run build     # type-check + production build to dist/
+npm run preview   # serve the built dist/ locally
+npm test          # unit tests (geo / scoring / calendar)
+npm run icons     # regenerate PWA icons from src/assets/icon.png
+```
+
+Geolocation ("Add a hive/flower") needs a secure context, which `localhost` provides.
+
+## Deploying to GitHub Pages
+Pages is configured to build from **GitHub Actions** (`.github/workflows/deploy.yml`). Every push to
+`main` runs `npm ci && npm run build` and publishes `dist/` to
+`https://<user>.github.io/beeline/`. The Vite `base` is `/beeline/`, threaded through the PWA
+manifest and service-worker scope.
+
+> If a deploy fails, push a fresh commit — do **not** re-run the same workflow/SHA (re-runs
+> duplicate the Pages artifact and the deploy wedges on the failed SHA).
 
 ## Data & attribution
 - Forage values: **Baude et al.** nectar (2016) & pollen (2025) datasets, UKCEH/EIDC, Open
@@ -50,20 +74,3 @@ client-side, from free/open APIs:
 - Weather: **Open-Meteo**. Map & land use: **© OpenStreetMap contributors** (ODbL).
 - Asian hornet check: **NBN Atlas** occurrence API. Planting suggestions: **All-Ireland Pollinator
   Plan** / **RHS Plants for Pollinators**. Bee-health guidance: **DAERA** (NI).
-
-## Running locally
-Because geolocation needs a secure context, serve it over `localhost` rather than opening the
-file directly:
-
-```bash
-python3 -m http.server 8000
-# then open http://localhost:8000
-```
-
-(Opening `index.html` straight from disk works too, but the "Add my hive here" geolocation
-button won't — click the map to place a hive instead.)
-
-## Deploying to GitHub Pages
-Pages is configured to build from **GitHub Actions** (`.github/workflows/deploy.yml`). Every push
-to `main` publishes the site at `https://<user>.github.io/beeline/`. No build step - the workflow
-just uploads the repo root as the Pages artifact.
