@@ -49,8 +49,8 @@ that class's colour, pollen colour and Baude-derived base value; the observation
 with the highest confidence tier (`observed` ×1.5 > `surveyed` ×1.25 > `osm` ×1.0), since a plant
 you saw in person is stronger evidence than a land-use polygon. Mapping: hawthorn/blackthorn→hedge;
 bramble/gorse/ivy→scrub; heather→heath; white clover/dandelion/knapweed→meadow; willow/lime/
-sycamore→wood; oilseed rape/field beans→farmland; apple→orchard; phacelia/borage/comfrey→garden.
-Free-text "other" → `garden` (a moderate default).
+sycamore→wood; oilseed rape/field beans→farmland; apple→orchard; phacelia/borage/comfrey/
+lavender/rose/foxglove/peony→garden. Free-text "other" → `garden` (a moderate default).
 
 ## Gap-filling plants (`GAP_PLANTS`)
 Suggestions for filling a detected forage gap are drawn from the All-Ireland Pollinator Plan and
