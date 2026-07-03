@@ -1,3 +1,6 @@
+import { useRef } from 'react'
+import type { ChangeEvent } from 'react'
+import { readPhotoLocation } from '../lib/photo'
 import { useStore } from '../store/useStore'
 import { Credits } from './Credits'
 import { ForageLegend } from './ForageLegend'
@@ -8,6 +11,12 @@ import styles from './controls.module.css'
 
 const GEO_OPTS: PositionOptions = { enableHighAccuracy: true, timeout: 8000 }
 
+function foundMessage(takenAt: Date | null): string {
+  if (!takenAt) return 'Found the photo location. Choose what was flowering.'
+  const date = takenAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return `Found the photo location from ${date}. Choose what was flowering.`
+}
+
 export function ControlsPanel() {
   const activeHive = useStore((s) => s.activeHive)
   const status = useStore((s) => s.status)
@@ -15,6 +24,7 @@ export function ControlsPanel() {
   const requestFlowerAt = useStore((s) => s.requestFlowerAt)
   const setPlacingFlower = useStore((s) => s.setPlacingFlower)
   const setStatus = useStore((s) => s.setStatus)
+  const photoInput = useRef<HTMLInputElement>(null)
 
   const addHiveHere = () => {
     if (!navigator.geolocation) {
@@ -56,6 +66,22 @@ export function ControlsPanel() {
     )
   }
 
+  const pickPhoto = () => photoInput.current?.click()
+
+  const onPhotoChosen = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setStatus('Reading the photo…')
+    const location = await readPhotoLocation(file)
+    if (!location) {
+      setStatus('No location saved in that photo. Add the flower by tapping the map instead.')
+      return
+    }
+    requestFlowerAt(location.lat, location.lon)
+    setStatus(foundMessage(location.takenAt))
+  }
+
   return (
     <aside className={`panel scroll-warm ${styles.controls}`}>
       <header className={styles.header}>
@@ -74,10 +100,20 @@ export function ControlsPanel() {
         <button type="button" className="btn" onClick={addFlower}>
           Add a flower
         </button>
+        <button type="button" className="btn" onClick={pickPhoto}>
+          Add a flower from a photo
+        </button>
+        <input
+          ref={photoInput}
+          className={styles.photoInput}
+          type="file"
+          accept="image/*"
+          onChange={onPhotoChosen}
+        />
       </div>
       <p className={`hint ${styles.addHint}`}>
         Or tap the map to drop a hive. Add a flower to log real forage where you’re standing — it sharpens nearby
-        predictions.
+        predictions. A geotagged photo drops the flower where it was taken, then you pick the plant.
       </p>
       {status && <p className={styles.status}>{status}</p>}
 
