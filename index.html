@@ -25,10 +25,10 @@
       box-shadow: 0 8px 28px rgba(70, 50, 10, 0.18);
       backdrop-filter: blur(4px);
     }
-    #controls { top: 14px; left: 14px; width: 320px; max-width: calc(100vw - 28px); padding: 16px 18px; }
+    #controls { top: 14px; left: 14px; width: 328px; max-width: calc(100vw - 28px); max-height: calc(100vh - 28px); overflow-y: auto; padding: 16px 18px; }
     #results { top: 14px; right: 14px; width: 320px; max-width: calc(100vw - 28px); max-height: calc(100vh - 28px); overflow-y: auto; padding: 16px 18px; }
-    @media (max-width: 760px) {
-      #controls, #results { position: static; width: auto; margin: 10px; }
+    @media (max-width: 780px) {
+      #controls, #results { position: static; width: auto; margin: 10px; max-height: none; }
       body { overflow-y: auto; }
       #map { position: relative; height: 55vh; inset: auto; }
     }
@@ -50,6 +50,14 @@
     label.field { font-size: 12px; font-weight: 600; color: #6f5f45; display: block; margin-bottom: 3px; }
     .link-btn { font-size: 11px; background: none; border: none; color: #b06a00; cursor: pointer; padding: 2px 4px; margin-left: 6px; text-decoration: underline; }
     .link-btn:hover { color: var(--honey-dark); }
+
+    .weatherbox { border: 1px solid var(--border); border-radius: 10px; padding: 10px 11px; margin-top: 10px; background: #fff; font-size: 12.5px; }
+    .weatherbox .fly { font-weight: 700; font-size: 13px; }
+    .weatherbox .fly.good { color: #2f8f2f; }
+    .weatherbox .fly.marg { color: #b58100; }
+    .weatherbox .fly.bad { color: #c0392b; }
+    .weatherbox .cond { color: #6f5f45; margin-top: 3px; }
+    .weatherbox .bloom { color: #7a6a4d; margin-top: 5px; font-size: 11.5px; border-top: 1px dashed var(--border); padding-top: 5px; }
 
     .swatches { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px; }
     .swatch {
@@ -73,6 +81,7 @@
     .dest .nm { font-weight: 700; font-size: 13.5px; }
     .dest .pct { font-weight: 700; color: var(--honey-dark); font-size: 13px; white-space: nowrap; }
     .dest .meta { font-size: 11.5px; color: #7a6a4d; margin-top: 3px; }
+    .dest .surveyed { color: #2f8f2f; font-weight: 600; }
     .bar { height: 5px; border-radius: 3px; background: #eee; margin-top: 6px; overflow: hidden; }
     .bar > span { display: block; height: 100%; background: var(--honey); }
 
@@ -82,6 +91,8 @@
     .hive-badge { font-size: 11px; background: #fff4d6; border: 1px solid var(--border); border-radius: 20px; padding: 2px 9px; color: #7a5c00; }
     .bee-icon { font-size: 22px; line-height: 1; text-align: center; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3)); }
     .bee-icon.mine { width: 28px; height: 28px; line-height: 26px; border-radius: 50%; background: rgba(246,168,0,0.30); border: 2px solid var(--honey-dark); box-shadow: 0 0 10px rgba(246,168,0,0.9); }
+    .credits { font-size: 10.5px; color: #9b8a68; margin-top: 16px; line-height: 1.5; }
+    .credits a { color: #9b8a68; }
   </style>
 </head>
 <body>
@@ -97,12 +108,15 @@
     <p class="hint" style="margin-top:-2px">…or click anywhere on the map to drop a hive.</p>
     <div class="status" id="status"></div>
 
+    <div class="weatherbox" id="weather" style="display:none"></div>
+
     <h2>Season</h2>
     <div class="row">
       <select id="season">
-        <option value="spring">🌸 Spring (blossom & rape)</option>
-        <option value="summer" selected>☀️ Summer (meadows & lime)</option>
-        <option value="late">🍂 Late summer (heather & ivy)</option>
+        <option value="auto" selected>🌦️ Auto (live weather)</option>
+        <option value="spring">🌸 Spring (blossom &amp; rape)</option>
+        <option value="summer">☀️ Summer (meadows &amp; lime)</option>
+        <option value="late">🍂 Late summer (heather &amp; ivy)</option>
       </select>
     </div>
 
@@ -112,6 +126,8 @@
 
     <h2>Forage legend</h2>
     <div class="legend" id="legend"></div>
+
+    <div class="credits" id="credits"></div>
   </div>
 
   <div id="results" class="panel">
@@ -122,35 +138,57 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // ---- Forage sources: OSM tag -> metadata ----
+    // ---- Forage sources: OSM/habitat class -> metadata ----
+    // `base` = relative forage value (0-10), grounded in Baude et al. 2016/2025 nectar & pollen
+    // rankings plus standard NI/UK forage references (see references/forage-values.md).
     const FORAGE = {
-      orchard:    { label: 'Orchard',    base: 10, colour: '#ff9ecb', pollen: 'cream',  plant: 'top-fruit blossom' },
-      heath:      { label: 'Heath',      base: 8,  colour: '#a06cd5', pollen: 'grey',   plant: 'heather' },
-      meadow:     { label: 'Meadow',     base: 8,  colour: '#8fd14f', pollen: 'mixed',  plant: 'wildflowers' },
-      allotments: { label: 'Allotments', base: 7,  colour: '#2bb3a3', pollen: 'brown',  plant: 'veg & fruit' },
+      hedge:      { label: 'Hedgerow',   base: 9,  colour: '#c98a5e', pollen: 'cream',  plant: 'hawthorn / blackthorn / bramble' },
+      heath:      { label: 'Heath',      base: 9,  colour: '#a06cd5', pollen: 'grey',   plant: 'heather' },
+      meadow:     { label: 'Meadow',     base: 8,  colour: '#8fd14f', pollen: 'mixed',  plant: 'clover / knapweed / dandelion' },
+      scrub:      { label: 'Scrub',      base: 8,  colour: '#8a9a5b', pollen: 'green',  plant: 'bramble / gorse' },
       garden:     { label: 'Garden',     base: 7,  colour: '#39c5bb', pollen: 'mixed',  plant: 'garden flowers' },
+      orchard:    { label: 'Orchard',    base: 7,  colour: '#ff9ecb', pollen: 'cream',  plant: 'top-fruit blossom' },
+      allotments: { label: 'Allotments', base: 6,  colour: '#2bb3a3', pollen: 'brown',  plant: 'veg & fruit' },
       farmland:   { label: 'Farmland',   base: 6,  colour: '#f2c000', pollen: 'yellow', plant: 'oilseed rape / crops' },
+      wood:       { label: 'Woodland',   base: 5,  colour: '#2e7d32', pollen: 'green',  plant: 'willow / sycamore / lime' },
       park:       { label: 'Park',       base: 5,  colour: '#6ab04c', pollen: 'mixed',  plant: 'verges & ornamentals' },
-      scrub:      { label: 'Scrub',      base: 5,  colour: '#8a9a5b', pollen: 'green',  plant: 'bramble' },
-      wood:       { label: 'Woodland',   base: 4,  colour: '#2e7d32', pollen: 'green',  plant: 'lime / willow' },
     };
     // Map raw OSM tag values onto our forage keys
     const TAG_TO_KEY = {
       orchard: 'orchard', meadow: 'meadow', farmland: 'farmland', allotments: 'allotments',
       forest: 'wood', wood: 'wood', heath: 'heath', scrub: 'scrub', garden: 'garden', park: 'park',
+      hedge: 'hedge', tree_row: 'hedge',
     };
 
+    // Manual season multipliers (used when the Season selector is not "auto")
     const SEASON = {
-      spring: { orchard: 1.6, farmland: 1.3, heath: 0.4, garden: 1.1 },
-      summer: { meadow: 1.3, garden: 1.2, wood: 1.3, orchard: 0.6, farmland: 0.9 },
-      late:   { heath: 2.2, scrub: 1.3, orchard: 0.2, farmland: 0.5, wood: 0.8 },
+      spring: { orchard: 1.6, farmland: 1.3, heath: 0.4, garden: 1.1, hedge: 1.3, wood: 1.2 },
+      summer: { meadow: 1.3, garden: 1.2, wood: 1.3, orchard: 0.6, farmland: 0.9, hedge: 1.2, scrub: 1.3 },
+      late:   { heath: 2.2, scrub: 1.3, orchard: 0.2, farmland: 0.5, wood: 0.8, hedge: 0.7, meadow: 0.9 },
     };
+
+    // Approx NI bloom windows as day-of-year [start, peakStart, peakEnd, end] (see references/forage-values.md).
+    // Used in "auto" mode, shifted by a growing-degree-day anomaly so a warm year advances bloom.
+    const BLOOM = {
+      hedge:      [75, 120, 215, 255],
+      scrub:      [130, 165, 245, 280],
+      heath:      [185, 210, 250, 275],
+      meadow:     [95, 160, 240, 285],
+      farmland:   [100, 115, 165, 200],
+      orchard:    [100, 118, 145, 165],
+      wood:       [85, 120, 200, 225],
+      garden:     [100, 150, 250, 292],
+      park:       [110, 150, 245, 288],
+      allotments: [110, 150, 250, 288],
+    };
+    // Rough NI-lowland cumulative GDD (base 5C) by day-of-year, for a "season ahead/behind" estimate only.
+    const GDD_BASELINE = [[1,2],[31,15],[59,35],[90,75],[120,180],[151,400],[181,700],[212,1000],[243,1280],[273,1470],[304,1580],[334,1640],[365,1670]];
 
     // Pollen colour palette -> swatch colour + matching forage keys
     const POLLEN = {
       yellow: { colour: '#f2c000', label: 'Bright yellow', keys: ['farmland', 'wood'],           note: 'oilseed rape, willow, gorse' },
       orange: { colour: '#ef8a17', label: 'Orange',        keys: ['farmland', 'meadow'],          note: 'dandelion, rape' },
-      cream:  { colour: '#f3e9cf', label: 'Cream / white',  keys: ['orchard', 'scrub'],            note: 'top fruit, bramble' },
+      cream:  { colour: '#f3e9cf', label: 'Cream / white',  keys: ['orchard', 'scrub', 'hedge'],   note: 'top fruit, hawthorn, bramble' },
       grey:   { colour: '#9b9186', label: 'Grey / dull',    keys: ['heath'],                       note: 'heather' },
       green:  { colour: '#7cae5b', label: 'Green',          keys: ['wood', 'scrub'],               note: 'lime, some crops' },
       purple: { colour: '#8a63d2', label: 'Blue / purple',  keys: ['meadow', 'garden'],            note: 'phacelia, bluebell' },
@@ -164,6 +202,15 @@
       'https://overpass-api.de/api/interpreter',
       'https://overpass.private.coffee/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
+    ];
+    // DAERA/NIEA Priority Habitats (OGL) — live ArcGIS FeatureServers, CORS-open, verified.
+    const HABITAT_BASE = 'https://services-eu1.arcgis.com/kswen6BYexuc1SUk/arcgis/rest/services';
+    const HABITAT_LAYERS = [
+      { name: 'PriorityHabitatsHeathland', key: 'heath' },
+      { name: 'PriorityHabitatsGrassland', key: 'meadow' },
+      { name: 'PriorityHabitatsPeatland',  key: 'heath' },
+      { name: 'PriorityHabitatsFens',      key: 'meadow' },
+      { name: 'PriorityHabitatsWoodland',  key: 'wood' },
     ];
     const MAX_MARKERS = 150;
     const STORAGE_KEY = 'beeline-hives';
@@ -181,12 +228,21 @@
 
     let hivesById = new Map();
     let activeHive = null;
-    let features = [];        // cached Overpass results for the active hive
+    const myHiveIds = new Set(JSON.parse(localStorage.getItem('beeline-my-hives') || '[]'));
+    function rememberMyHive(id) {
+      myHiveIds.add(id);
+      localStorage.setItem('beeline-my-hives', JSON.stringify([...myHiveIds]));
+    }
+    let features = [];        // cached forage results (OSM + DAERA habitats) for the active hive
     let selectedPollen = null;
     let fetchToken = 0;       // guards against stale async results
+    let currentWeather = null;
+    let gddOffsetDays = 0;    // season advance(+)/delay(-) from growing-degree-day anomaly
+    let gddTotal = null;
 
     const $ = (id) => document.getElementById(id);
     const statusEl = $('status');
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
     function setStatus(msg) { statusEl.textContent = msg || ''; }
 
@@ -206,10 +262,26 @@
       const points = ['N','NE','E','SE','S','SW','W','NW'];
       return points[Math.round(deg / 45) % 8];
     }
+    function polygonCentroid(geom) {
+      if (!geom) return null;
+      let ring;
+      if (geom.type === 'Polygon') ring = geom.coordinates[0];
+      else if (geom.type === 'MultiPolygon') ring = geom.coordinates[0][0];
+      else return null;
+      if (!ring || !ring.length) return null;
+      let x = 0, y = 0;
+      for (const p of ring) { x += p[0]; y += p[1]; }
+      return [x / ring.length, y / ring.length];
+    }
+    function dayOfYear() {
+      const d = new Date();
+      return Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+    }
 
     // ---- Hives (saved in this browser via localStorage) ----
-    function beeIcon() {
-      return L.divIcon({ className: '', html: '<div class="bee-icon mine">🐝</div>', iconSize: [28, 28], iconAnchor: [14, 14] });
+    function beeIcon(isMine) {
+      const size = isMine ? 28 : 26;
+      return L.divIcon({ className: '', html: `<div class="bee-icon${isMine ? ' mine' : ''}">🐝</div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
     }
 
     function loadHives() {
@@ -218,21 +290,19 @@
       hivesById = new Map(list.filter(h => h && typeof h.id === 'number').map((h) => [h.id, h]));
       drawHives();
     }
-
     function saveHives() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify([...hivesById.values()]));
     }
-
     function drawHives() {
       hiveLayer.clearLayers();
       for (const h of hivesById.values()) {
-        const m = L.marker([h.lat, h.lon], { icon: beeIcon(), title: h.name });
-        m.bindTooltip(h.name, { direction: 'top', offset: [0, -14] });
+        const mine = myHiveIds.has(h.id);
+        const m = L.marker([h.lat, h.lon], { icon: beeIcon(mine), title: h.name });
+        m.bindTooltip(mine ? `${h.name} · your hive` : h.name, { direction: 'top', offset: [0, -14] });
         m.on('click', () => selectHive(h));
         m.addTo(hiveLayer);
       }
     }
-
     function addHive(lat, lon) {
       const name = prompt('Name this hive (e.g. "Maggie\'s apiary"):', 'My hive');
       if (name === null) return;
@@ -240,11 +310,11 @@
       const hive = { id, name: (name.trim() || 'My hive').slice(0, 60), lat, lon, createdAt: new Date().toISOString() };
       hivesById.set(id, hive);
       saveHives();
+      rememberMyHive(id);
       drawHives();
       setStatus('Hive saved in this browser.');
       selectHive(hive);
     }
-
     function removeHive(id) {
       hivesById.delete(id);
       saveHives();
@@ -255,6 +325,7 @@
         ringLayer.clearLayers();
         forageLayer.clearLayers();
         $('activeHive').innerHTML = '';
+        $('weather').style.display = 'none';
         $('destList').innerHTML = '<p class="empty">Add a hive, then click it to analyse its foraging range.</p>';
       }
     }
@@ -264,10 +335,12 @@
       activeHive = hive;
       drawRings(hive);
       map.flyTo([hive.lat, hive.lon], 13, { duration: 0.6 });
+      const mineLabel = myHiveIds.has(hive.id) ? ' · your hive' : '';
       $('activeHive').innerHTML =
-        `<span class="hive-badge">🐝 ${escapeHtml(hive.name)}</span>` +
+        `<span class="hive-badge">🐝 ${escapeHtml(hive.name)}${mineLabel}</span>` +
         `<button class="link-btn" id="removeHiveBtn">Remove hive</button>`;
       $('removeHiveBtn').addEventListener('click', () => removeHive(hive.id));
+      loadWeather(hive);
       loadForage(hive);
     }
 
@@ -282,25 +355,88 @@
       });
     }
 
+    // ---- Weather + growing-degree-day season (Open-Meteo, keyless/CORS) ----
+    async function loadWeather(hive) {
+      const box = $('weather');
+      box.style.display = 'block';
+      box.innerHTML = '<div class="cond">Checking conditions…</div>';
+      currentWeather = null;
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${hive.lat}&longitude=${hive.lon}&current=temperature_2m,wind_speed_10m,precipitation&timezone=auto`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
+        const data = await res.json();
+        currentWeather = data.current || null;
+      } catch { currentWeather = null; }
+      renderWeather();
+      loadGdd(hive);
+    }
+
+    async function loadGdd(hive) {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${hive.lat}&longitude=${hive.lon}&start_date=${new Date().getFullYear()}-01-01&end_date=${today}&daily=temperature_2m_mean&timezone=auto`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+        const data = await res.json();
+        const temps = (data.daily && data.daily.temperature_2m_mean) || [];
+        const gdd = temps.reduce((s, x) => s + (x != null ? Math.max(0, x - 5) : 0), 0);
+        const doy = dayOfYear();
+        const perDay = Math.max(1, (currentWeather ? currentWeather.temperature_2m : 12) - 5);
+        gddTotal = Math.round(gdd);
+        gddOffsetDays = clamp(Math.round((gdd - expectedGdd(doy)) / perDay), -25, 25);
+        renderWeather();
+        if (features.length && $('season').value === 'auto') render();
+      } catch { /* keep offset 0 */ }
+    }
+
+    function expectedGdd(doy) {
+      const B = GDD_BASELINE;
+      if (doy <= B[0][0]) return B[0][1];
+      for (let i = 1; i < B.length; i++) {
+        if (doy <= B[i][0]) {
+          const [d0, g0] = B[i - 1], [d1, g1] = B[i];
+          return g0 + (g1 - g0) * (doy - d0) / (d1 - d0);
+        }
+      }
+      return B[B.length - 1][1];
+    }
+
+    function flyVerdict(w) {
+      if (!w) return { txt: 'Conditions unavailable', cls: '' };
+      const t = w.temperature_2m, wind = w.wind_speed_10m, p = w.precipitation;
+      if (t >= 13 && wind < 25 && p === 0) return { txt: '🐝 Good foraging weather', cls: 'good' };
+      if (t >= 10 && p < 0.3 && wind < 35) return { txt: '🟡 Marginal — some foragers out', cls: 'marg' };
+      return { txt: '🔴 Bees mostly staying home', cls: 'bad' };
+    }
+
+    function renderWeather() {
+      const box = $('weather');
+      const v = flyVerdict(currentWeather);
+      let html = `<div class="fly ${v.cls}">${v.txt}</div>`;
+      if (currentWeather) {
+        const w = currentWeather;
+        html += `<div class="cond">${Math.round(w.temperature_2m)}°C · wind ${Math.round(w.wind_speed_10m)} km/h · ${w.precipitation > 0 ? w.precipitation + ' mm rain' : 'dry'}</div>`;
+      }
+      if ($('season').value === 'auto' && gddTotal != null) {
+        const ahead = gddOffsetDays;
+        const phrase = ahead === 0 ? 'about average' : (ahead > 0 ? `~${ahead} day${ahead === 1 ? '' : 's'} ahead of average` : `~${-ahead} day${ahead === -1 ? '' : 's'} behind average`);
+        html += `<div class="bloom">🌱 Auto season from live weather · growing season ${phrase} (${gddTotal} GDD so far)</div>`;
+      }
+      box.innerHTML = html;
+    }
+
     // ---- Overpass forage fetch ----
     function buildQuery(lat, lon) {
       return `[out:json][timeout:25];
 (
   way["landuse"~"orchard|meadow|farmland|allotments|forest|heath"](around:5000,${lat},${lon});
   way["leisure"~"garden|park"](around:5000,${lat},${lon});
-  way["natural"~"heath|scrub|wood"](around:5000,${lat},${lon});
+  way["natural"~"heath|scrub|wood|tree_row"](around:5000,${lat},${lon});
+  way["barrier"="hedge"](around:5000,${lat},${lon});
 );
 out center tags;`;
     }
 
-    async function loadForage(hive) {
-      const token = ++fetchToken;
-      features = [];
-      forageLayer.clearLayers();
-      $('destList').innerHTML = '<p class="empty">🔎 Scanning the landscape around this hive…</p>';
-      setStatus('Fetching forage from OpenStreetMap…');
-
-      const query = buildQuery(hive.lat, hive.lon);
+    async function fetchOverpass(query) {
       const attempt = (endpoint) => fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -311,36 +447,79 @@ out center tags;`;
         const json = await res.json();
         return json.elements || [];
       });
+      try { return await Promise.any(OVERPASS.map(attempt)); }
+      catch { return null; }
+    }
 
-      let elements = null;
-      try {
-        elements = await Promise.any(OVERPASS.map(attempt));
-      } catch (e) { /* every mirror failed */ }
+    // DAERA Priority Habitats — surveyed polygons, supplement OSM where coverage exists.
+    async function fetchHabitats(hive) {
+      const dLat = 5000 / 111000;
+      const dLon = 5000 / (111000 * Math.cos(hive.lat * Math.PI / 180));
+      const bbox = [hive.lon - dLon, hive.lat - dLat, hive.lon + dLon, hive.lat + dLat].join(',');
+      const layerUrl = (name) =>
+        `${HABITAT_BASE}/${name}/FeatureServer/0/query?geometry=${bbox}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=Hab_Type,Area_Hectares&returnGeometry=true&outSR=4326&f=geojson`;
+      const perLayer = HABITAT_LAYERS.map(async (layer) => {
+        try {
+          const res = await fetch(layerUrl(layer.name), { signal: AbortSignal.timeout(15000) });
+          if (!res.ok) return [];
+          const gj = await res.json();
+          return (gj.features || []).map((f) => {
+            const c = polygonCentroid(f.geometry);
+            if (!c) return null;
+            const props = f.properties || {};
+            return {
+              key: layer.key,
+              name: props.Hab_Type || FORAGE[layer.key].label,
+              lat: c[1], lon: c[0],
+              area: props.Area_Hectares || null,
+              confidence: 'surveyed',
+            };
+          }).filter(Boolean);
+        } catch { return []; }
+      });
+      return (await Promise.all(perLayer)).flat();
+    }
+
+    async function loadForage(hive) {
+      const token = ++fetchToken;
+      features = [];
+      forageLayer.clearLayers();
+      $('destList').innerHTML = '<p class="empty">🔎 Scanning the landscape around this hive…</p>';
+      setStatus('Fetching forage from OpenStreetMap & DAERA…');
+
+      const [elements, habitats] = await Promise.all([
+        fetchOverpass(buildQuery(hive.lat, hive.lon)),
+        fetchHabitats(hive),
+      ]);
 
       if (token !== fetchToken) return; // a newer selection superseded this one
       setStatus('');
 
-      if (!elements) {
-        $('destList').innerHTML = '<p class="empty">⚠️ Forage data service is busy. Give it a few seconds and click the hive again.</p>';
-        return;
-      }
-
-      features = elements.map((el) => {
+      const osmFeatures = !elements ? [] : elements.map((el) => {
         const center = el.center || {};
         const tags = el.tags || {};
-        const rawVal = tags.landuse || tags.natural || tags.leisure;
+        const rawVal = tags.landuse || tags.natural || tags.leisure || tags.barrier;
         const key = TAG_TO_KEY[rawVal];
         if (!key || center.lat == null) return null;
         const pt = { lat: center.lat, lon: center.lon };
         return {
-          key,
-          name: tags.name || FORAGE[key].label,
+          key, name: tags.name || FORAGE[key].label,
           lat: pt.lat, lon: pt.lon,
-          distance: distanceMetres(hive, pt),
-          dir: bearing(hive, pt),
+          distance: distanceMetres(hive, pt), dir: bearing(hive, pt),
+          confidence: 'osm',
         };
-      }).filter(Boolean).filter((f) => f.distance <= 5000);
+      }).filter(Boolean);
 
+      const habFeatures = habitats.map((h) => ({
+        ...h, distance: distanceMetres(hive, h), dir: bearing(hive, h),
+      }));
+
+      features = osmFeatures.concat(habFeatures).filter((f) => f.distance <= 5000);
+
+      if (!elements && !features.length) {
+        $('destList').innerHTML = '<p class="empty">⚠️ Forage data service is busy. Give it a few seconds and click the hive again.</p>';
+        return;
+      }
       if (!features.length) {
         $('destList').innerHTML = '<p class="empty">No mapped forage nearby — try a hive near farmland or a town.</p>';
         return;
@@ -349,11 +528,26 @@ out center tags;`;
     }
 
     // ---- Scoring + rendering ----
+    function seasonFactor(key) {
+      const sel = $('season').value;
+      if (sel !== 'auto') return (SEASON[sel] || {})[key] || 1;
+      return bloomFactor(key);
+    }
+    function bloomFactor(key) {
+      const w = BLOOM[key];
+      if (!w) return 1;
+      const doy = dayOfYear() + gddOffsetDays;
+      const [s, ps, pe, e] = w;
+      if (doy <= s || doy >= e) return 0.25;
+      if (doy < ps) return 0.35 + 0.75 * (doy - s) / (ps - s);
+      if (doy <= pe) return 1.25;
+      return 0.35 + 0.75 * (e - doy) / (e - pe);
+    }
     function scoreOf(f) {
       const meta = FORAGE[f.key];
-      const seasonMult = (SEASON[$('season').value] || {})[f.key] || 1;
       const decay = Math.exp(-f.distance / 1500);
-      let score = meta.base * seasonMult * decay;
+      const conf = f.confidence === 'surveyed' ? 1.25 : 1;
+      let score = meta.base * seasonFactor(f.key) * decay * conf;
       if (selectedPollen && !POLLEN[selectedPollen].keys.includes(f.key)) score *= 0.15;
       return score;
     }
@@ -368,17 +562,17 @@ out center tags;`;
       for (const f of scored.slice(0, MAX_MARKERS)) {
         const meta = FORAGE[f.key];
         const matches = !selectedPollen || POLLEN[selectedPollen].keys.includes(f.key);
+        const surveyed = f.confidence === 'surveyed';
         const marker = L.circleMarker([f.lat, f.lon], {
           radius: 5 + 7 * (f.score / maxScore),
-          color: '#fff', weight: 1,
+          color: surveyed ? '#1b5e20' : '#fff', weight: surveyed ? 2 : 1,
           fillColor: meta.colour, fillOpacity: matches ? 0.9 : 0.15,
         });
         marker.bindPopup(
-          `<strong>${escapeHtml(f.name)}</strong><br>${meta.label} · ${meta.plant}` +
+          `<strong>${escapeHtml(f.name)}</strong>${surveyed ? ' <span style="color:#2f8f2f">✓ DAERA surveyed</span>' : ''}<br>${meta.label} · ${meta.plant}` +
           `<br>${fmtDist(f.distance)} · ${f.dir}` +
           `<br><span class="pollen-tag" style="background:${pollenColour(meta.pollen)}"></span>${meta.pollen} pollen`
         );
-        marker._key = f.key;
         marker.addTo(forageLayer);
       }
 
@@ -387,12 +581,13 @@ out center tags;`;
         const meta = FORAGE[f.key];
         const pct = Math.round(100 * f.score / maxScore);
         const matches = !selectedPollen || POLLEN[selectedPollen].keys.includes(f.key);
+        const surveyed = f.confidence === 'surveyed' ? ' · <span class="surveyed">✓ surveyed</span>' : '';
         return `<div class="dest ${matches ? '' : 'dim'}" data-lat="${f.lat}" data-lon="${f.lon}">
           <div class="top">
             <span class="nm"><span class="pollen-tag" style="background:${pollenColour(meta.pollen)}"></span>${escapeHtml(f.name)}</span>
             <span class="pct">${pct}%</span>
           </div>
-          <div class="meta">${meta.label} · ${fmtDist(f.distance)} · heading ${f.dir} · ${meta.pollen} pollen</div>
+          <div class="meta">${meta.label} · ${fmtDist(f.distance)} · heading ${f.dir} · ${meta.pollen} pollen${surveyed}</div>
           <div class="bar"><span style="width:${pct}%"></span></div>
         </div>`;
       }).join('');
@@ -435,6 +630,12 @@ out center tags;`;
         });
       });
     }
+    function buildCredits() {
+      $('credits').innerHTML =
+        'Forage values: Baude et al. (nectar 2016, pollen 2025), UKCEH/EIDC (OGL). ' +
+        'Habitats: DAERA/NIEA Priority Habitats (OGL). ' +
+        'Weather: Open-Meteo. Map & land use: &copy; OpenStreetMap contributors.';
+    }
 
     // ---- Wire up events ----
     $('locateBtn').addEventListener('click', () => {
@@ -447,10 +648,11 @@ out center tags;`;
       );
     });
     map.on('click', (e) => addHive(e.latlng.lat, e.latlng.lng));
-    $('season').addEventListener('change', () => { if (features.length) render(); });
+    $('season').addEventListener('change', () => { renderWeather(); if (features.length) render(); });
 
     buildLegend();
     buildSwatches();
+    buildCredits();
     loadHives();
   </script>
 </body>

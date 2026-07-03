@@ -9,19 +9,38 @@ richest nectar/pollen sources closest to home).
 
 ## Features
 - **Forage & bloom map** — draws the 1 / 3 / 5 km foraging rings, pulls the real green spaces
-  around your hive from OpenStreetMap (orchards, meadows, gardens, farmland, heath, woods…)
-  and ranks the **likely destinations** by forage value × distance × season.
-- **Pollen colour map** — each source is tinted by its plant's characteristic pollen colour,
-  and a swatch picker highlights the sources matching the pollen you see at the hive entrance.
-- **Season selector** — reweights the ranking through the year (blossom in spring, heather in
-  late summer, and so on).
-- **Your hives** — add as many hives as you like; they're saved in your browser's
-  `localStorage`, so they're there next time you visit. No account, no server.
+  around your hive from OpenStreetMap (orchards, meadows, gardens, farmland, heath, hedgerows,
+  woods…) and ranks the **likely destinations** by forage value × bloom timing × distance.
+- **Research-grounded forage values** — the per-plant nectar values are derived from Baude et al.'s
+  measured UK nectar/pollen datasets (see [`references/forage-values.md`](references/forage-values.md)),
+  not guesswork.
+- **Authoritative NI habitat layers** — supplements OSM with DAERA/NIEA **Priority Habitats**
+  (surveyed heath, species-rich grassland, peatland, fens, woodland), marked ✓ surveyed and given
+  a confidence bonus.
+- **Live weather + dynamic bloom** — an Open-Meteo "are the bees flying today?" panel (temperature,
+  wind, rain), and an **Auto** season mode that shifts bloom timing by the year's growing-degree-day
+  anomaly instead of fixed months.
+- **Hedgerow forage** — hedges (hawthorn/blackthorn/bramble), the biggest real NI forage source, are
+  pulled from OSM and scored.
+- **Pollen colour map** — each source is tinted by its plant's characteristic pollen colour, and a
+  swatch picker highlights the sources matching the pollen you see at the hive entrance.
+- **Your hives** — add as many hives as you like; they're saved in your browser's `localStorage`,
+  so they're there next time you visit. No account, no server.
 
 ## How it works
-It's a single static `index.html` — no build step and no backend. Map tiles come from
-OpenStreetMap, and forage features come from the free [Overpass API](https://overpass-api.de/)
-(four mirrors are raced in parallel for resilience).
+It's a single static `index.html` — no build step and no backend. Everything is fetched live,
+client-side, from free/open APIs:
+- **Map & land use:** OpenStreetMap tiles + the [Overpass API](https://overpass-api.de/) (four
+  mirrors raced in parallel for resilience).
+- **NI habitats:** DAERA/NIEA Priority Habitats ArcGIS FeatureServers (OGL).
+- **Weather / growing-degree-days:** [Open-Meteo](https://open-meteo.com/) (keyless).
+
+## Data & attribution
+- Forage values: **Baude et al.** nectar (2016) & pollen (2025) datasets, UKCEH/EIDC, Open
+  Government Licence. See `references/forage-values.md`.
+- Habitats: **DAERA/NIEA Priority Habitats**, via [OpenDataNI](https://www.opendatani.gov.uk/),
+  Open Government Licence.
+- Weather: **Open-Meteo**. Map & land use: **© OpenStreetMap contributors** (ODbL).
 
 ## Running locally
 Because geolocation needs a secure context, serve it over `localhost` rather than opening the
@@ -36,6 +55,6 @@ python3 -m http.server 8000
 button won't — click the map to place a hive instead.)
 
 ## Deploying to GitHub Pages
-This repo is already Pages-ready (`index.html` at the root, plus a `.nojekyll` marker). To
-enable it: **Settings → Pages → Build and deployment → Deploy from a branch → `main` / `/root`**.
-The site publishes at `https://<user>.github.io/beeline/`.
+Pages is configured to build from **GitHub Actions** (`.github/workflows/deploy.yml`). Every push
+to `main` publishes the site at `https://<user>.github.io/beeline/`. No build step - the workflow
+just uploads the repo root as the Pages artifact.
