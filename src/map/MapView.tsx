@@ -146,6 +146,7 @@ export function MapView() {
     if (!map || !layers.current) return
     const group = layers.current.flower
     group.clearLayers()
+    if (!activeHive) return
     for (const f of flowers) {
       const marker = L.marker([f.lat, f.lon], { icon: flowerIcon() })
       const note = f.note ? `<div class="pin-pop__meta">${escapeHtml(f.note)}</div>` : ''
@@ -163,7 +164,7 @@ export function MapView() {
       })
       marker.addTo(group)
     }
-  }, [map, flowers])
+  }, [map, flowers, activeHive])
 
   useEffect(() => {
     if (!map || !layers.current) return
