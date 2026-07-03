@@ -9,16 +9,6 @@ body,
   height: 100%;
 }
 
-/* On small screens the app scrolls as a normal document (map, then panels). */
-@media (max-width: 820px) {
-  html,
-  body,
-  #root {
-    height: auto;
-    min-height: 100%;
-  }
-}
-
 body {
   font-family: var(--font-body);
   font-weight: 420;
@@ -141,6 +131,14 @@ a:hover {
 }
 .leaflet-control-attribution a {
   color: var(--wax-dim) !important;
+}
+
+/* On mobile the bottom tab bar sits over the map; lift Leaflet's bottom
+   controls (zoom + attribution) clear of it. */
+@media (max-width: 820px) {
+  .leaflet-bottom {
+    margin-bottom: calc(56px + env(safe-area-inset-bottom));
+  }
 }
 
 /* ---- Map pins (Leaflet divIcon HTML lives outside React, so styled globally) ---- */

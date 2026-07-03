@@ -9,16 +9,3 @@
   inset: 0;
   z-index: 0;
 }
-
-@media (max-width: 820px) {
-  .app {
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-  }
-  .mapWrap {
-    position: relative;
-    inset: auto;
-    height: 56dvh;
-  }
-}
