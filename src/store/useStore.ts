@@ -80,7 +80,7 @@ interface BeeState {
   togglePollen: (k: PollenKey) => void
   toggleBeeFlights: () => void
   flyTo: (lat: number, lon: number, zoom: number) => void
-  selectHive: (hive: Hive) => void
+  selectHive: (hive: Hive, focusResults?: boolean) => void
   addHive: (lat: number, lon: number, name: string) => void
   removeHive: (id: number) => void
   requestFlowerAt: (lat: number, lon: number) => void
@@ -170,9 +170,11 @@ export const useStore = create<BeeState>((set, get) => {
     flyTo: (lat, lon, zoom) =>
       set((s) => ({ flyRequest: { lat, lon, zoom, nonce: (s.flyRequest?.nonce ?? 0) + 1 } })),
 
-    selectHive: (hive) => {
+    selectHive: (hive, focusResults = false) => {
       const token = ++selectionToken
-      set({ activeHive: hive, mobileView: 'results' })
+      // Tapping a hive on the map keeps you on the map (rings + bee flights show
+      // there); only a deliberate add jumps to the Forage results on mobile.
+      set(focusResults ? { activeHive: hive, mobileView: 'results' } : { activeHive: hive })
       void loadWeather(hive, token)
       void loadBiosecurity(hive, token)
       void loadForage(hive, token)
@@ -193,7 +195,7 @@ export const useStore = create<BeeState>((set, get) => {
       saveHives(nextHives)
       saveMyHiveIds(myHiveIds)
       set({ hives: nextHives, myHiveIds, status: 'Hive saved in this browser.' })
-      get().selectHive(hive)
+      get().selectHive(hive, true)
     },
 
     removeHive: (id) => {

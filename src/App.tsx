@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { ControlsPanel } from './components/ControlsPanel'
 import { FlowerPicker } from './components/FlowerPicker'
+import { MapAddMenu } from './components/MapAddMenu'
 import { MobileNav } from './components/MobileNav'
 import { ResultsPanel } from './components/ResultsPanel'
 import { MapView } from './map/MapView'
@@ -35,6 +36,7 @@ export function App() {
       </div>
       <ControlsPanel />
       <ResultsPanel />
+      <MapAddMenu />
       <FlowerPicker />
       <MobileNav />
     </div>
