@@ -11,6 +11,14 @@ export function distanceMetres(a: LatLon, b: LatLon): number {
   return 2 * R * Math.asin(Math.sqrt(s))
 }
 
+const METRES_PER_DEG_LAT = 111320
+
+export function offsetLatLon(origin: LatLon, eastMetres: number, northMetres: number): LatLon {
+  const dLat = northMetres / METRES_PER_DEG_LAT
+  const dLon = eastMetres / (METRES_PER_DEG_LAT * Math.cos((origin.lat * Math.PI) / 180))
+  return { lat: origin.lat + dLat, lon: origin.lon + dLon }
+}
+
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
 
 export function bearing(a: LatLon, b: LatLon): string {

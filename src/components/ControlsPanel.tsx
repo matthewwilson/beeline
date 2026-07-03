@@ -1,4 +1,5 @@
 import { useStore } from '../store/useStore'
+import { BeeFlights } from './BeeFlights'
 import { Credits } from './Credits'
 import { ForageLegend } from './ForageLegend'
 import { PollenSwatches } from './PollenSwatches'
@@ -97,6 +98,11 @@ export function ControlsPanel() {
         <p className={`eyebrow ${styles.blockLabel}`}>Pollen at the entrance</p>
         <p className={`hint ${styles.blockHint}`}>Seeing a colour on returning bees? Tap it to highlight matching sources.</p>
         <PollenSwatches />
+      </section>
+
+      <section className={styles.block}>
+        <p className={`eyebrow ${styles.blockLabel}`}>Foraging flights by age</p>
+        <BeeFlights />
       </section>
 
       <section className={styles.block}>
