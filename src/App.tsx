@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { ControlsPanel } from './components/ControlsPanel'
 import { FlowerPicker } from './components/FlowerPicker'
 import { MapAddMenu } from './components/MapAddMenu'
+import { MapExtras } from './components/MapExtras'
 import { MobileNav } from './components/MobileNav'
 import { ResultsPanel } from './components/ResultsPanel'
 import { MapView } from './map/MapView'
@@ -33,6 +34,9 @@ export function App() {
     <div className={styles.app} data-mobile-view={mobileView}>
       <div className={styles.mapWrap}>
         <MapView />
+      </div>
+      <div className={`panel scroll-warm ${styles.mapExtras}`}>
+        <MapExtras />
       </div>
       <ControlsPanel />
       <ResultsPanel />

@@ -272,5 +272,15 @@ export function MapView() {
     map.flyTo([flyRequest.lat, flyRequest.lon], flyRequest.zoom, { duration: 0.6 })
   }, [map, flyRequest])
 
+  // The map's container height changes when the mobile Map tab shrinks it to sit
+  // above the weather/legend panel; keep Leaflet's tile layout in sync.
+  useEffect(() => {
+    const el = containerRef.current
+    if (!map || !el) return
+    const ro = new ResizeObserver(() => map.invalidateSize())
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [map])
+
   return <div ref={containerRef} className={styles.root} />
 }

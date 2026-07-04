@@ -9,3 +9,33 @@
   inset: 0;
   z-index: 0;
 }
+
+/* Weather + forage legend below the map. Mobile Map tab only; hidden elsewhere. */
+.mapExtras {
+  display: none;
+}
+
+@media (max-width: 820px) {
+  /* On the Map tab the whole view scrolls as one: the map sits at the top a
+     little short of full height, with weather + legend flowing below it, so a
+     scroll gesture anywhere carries the map and the panel together. */
+  .app:global([data-mobile-view='map']) {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  :global([data-mobile-view='map']) .mapWrap {
+    position: relative;
+    inset: auto;
+    height: 78dvh;
+  }
+  :global([data-mobile-view='map']) .mapExtras {
+    display: block;
+    position: relative;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    /* Clear the fixed bottom tab bar when scrolled to the end. */
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  }
+}

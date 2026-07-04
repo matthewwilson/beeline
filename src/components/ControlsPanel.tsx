@@ -49,10 +49,10 @@ export function ControlsPanel() {
       {status && <p className={styles.status}>{status}</p>}
 
       {activeHive && (
-        <>
+        <div className={styles.desktopOnly}>
           <div className={styles.sep} />
           <WeatherBox />
-        </>
+        </div>
       )}
 
       <section className={styles.block}>
@@ -71,7 +71,7 @@ export function ControlsPanel() {
         <BeeFlights />
       </section>
 
-      <section className={styles.block}>
+      <section className={`${styles.block} ${styles.desktopOnly}`}>
         <p className={`eyebrow ${styles.blockLabel}`}>Forage legend</p>
         <ForageLegend />
       </section>

@@ -73,6 +73,10 @@
   .addHint {
     display: none;
   }
+  /* Weather + forage legend move below the map on the Map tab (see MapExtras). */
+  .desktopOnly {
+    display: none;
+  }
 }
 
 .status {

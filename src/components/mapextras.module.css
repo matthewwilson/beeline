@@ -1,0 +1,14 @@
+.extras {
+  padding: 14px 16px 18px;
+}
+
+.block {
+  margin-top: 16px;
+}
+.block:first-child {
+  margin-top: 0;
+}
+.blockLabel {
+  display: block;
+  margin-bottom: 9px;
+}
