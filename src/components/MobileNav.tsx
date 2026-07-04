@@ -7,8 +7,8 @@ import styles from './mobilenav.module.css'
 
 const TABS: { view: MobileView; icon: IconDefinition; label: string }[] = [
   { view: 'map', icon: faMapLocationDot, label: 'Map' },
-  { view: 'controls', icon: faGear, label: 'Setup' },
   { view: 'results', icon: faSpa, label: 'Forage' },
+  { view: 'controls', icon: faGear, label: 'Setup' },
 ]
 
 export function MobileNav() {
