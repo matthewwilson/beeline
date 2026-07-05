@@ -4,7 +4,8 @@ import { FORAGE, MATING_RADIUS_KM, MAX_MARKERS, RING_KM } from '../data/forage'
 import { POLLEN, pollenColour } from '../data/pollen'
 import { createBees, stepBee } from '../lib/beeFlights'
 import type { Bee } from '../lib/beeFlights'
-import { escapeHtml, fmtDist } from '../lib/geo'
+import { DEFAULT_STEP_M } from '../lib/dca'
+import { escapeHtml, fmtDist, offsetLatLon } from '../lib/geo'
 import { scoreOf } from '../lib/scoring'
 import { useStore } from '../store/useStore'
 import type { LatLon, ScoredFeature } from '../types'
@@ -34,6 +35,11 @@ function flyIcon(colour: string): L.DivIcon {
     iconSize: [12, 12],
     iconAnchor: [6, 6],
   })
+}
+
+// Warm suitability ramp: amber (lower) → deep red (higher). t is 0..1.
+function dcaColour(t: number): string {
+  return `hsl(${45 - 33 * t}, 85%, ${56 - 10 * t}%)`
 }
 
 function drawStaticFlights(group: L.LayerGroup, bees: Bee[], hive: LatLon): void {
@@ -69,6 +75,7 @@ export function MapView() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<L.Map | null>(null)
   const layers = useRef<{
+    dca: L.LayerGroup
     hive: L.LayerGroup
     forage: L.LayerGroup
     flower: L.LayerGroup
@@ -90,6 +97,8 @@ export function MapView() {
   const gddOffsetDays = useStore((s) => s.weather.gddOffsetDays)
   const showBeeFlights = useStore((s) => s.showBeeFlights)
   const showMatingRadius = useStore((s) => s.showMatingRadius)
+  const showDca = useStore((s) => s.showDca)
+  const dcaCells = useStore((s) => s.dcaCells)
   const flyRequest = useStore((s) => s.flyRequest)
 
   useEffect(() => {
@@ -102,6 +111,8 @@ export function MapView() {
     L.control.zoom({ position: 'bottomright' }).addTo(m)
 
     layers.current = {
+      // The DCA grid sits under everything else so markers and rings stay legible.
+      dca: L.layerGroup().addTo(m),
       hive: L.layerGroup().addTo(m),
       forage: L.layerGroup().addTo(m),
       flower: L.layerGroup().addTo(m),
@@ -237,6 +248,30 @@ export function MapView() {
       marker.addTo(group)
     }
   }, [map, features, season, selectedPollen, gddOffsetDays])
+
+  // Drone-congregation-area suitability grid: draw the stronger cells as graded, warm,
+  // non-interactive squares (clicks pass through so you can still drop a hive under them).
+  useEffect(() => {
+    if (!map || !layers.current) return
+    const group = layers.current.dca
+    group.clearLayers()
+    if (!showDca || dcaCells.length === 0) return
+    const maxScore = dcaCells.reduce((m, c) => Math.max(m, c.score), 0) || 1
+    const half = DEFAULT_STEP_M / 2
+    for (const cell of dcaCells) {
+      const t = cell.score / maxScore
+      if (t < 0.5) continue // hide the weak majority to keep the map readable
+      const k = (t - 0.5) / 0.5
+      const sw = offsetLatLon(cell, -half, -half)
+      const ne = offsetLatLon(cell, half, half)
+      L.rectangle([[sw.lat, sw.lon], [ne.lat, ne.lon]], {
+        stroke: false,
+        fillColor: dcaColour(k),
+        fillOpacity: 0.18 + 0.42 * k,
+        interactive: false,
+      }).addTo(group)
+    }
+  }, [map, showDca, dcaCells])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')

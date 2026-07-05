@@ -1,8 +1,10 @@
 import { create } from 'zustand'
 import { bearing, clamp, dayOfYear, distanceMetres } from '../lib/geo'
+import { buildGrid, scoreGrid, type DcaCell } from '../lib/dca'
 import { expectedGdd } from '../lib/scoring'
 import { fetchOverpass, overpassToFeatures } from '../services/overpass'
 import { fetchHabitats } from '../services/habitats'
+import { fetchElevations } from '../services/elevation'
 import { fetchCurrentWeather, fetchGddTotal } from '../services/weather'
 import { fetchHornetCount } from '../services/nbn'
 import {
@@ -16,6 +18,10 @@ import {
 import type { CurrentWeather, Feature, Flower, ForageKey, Hive, LatLon, PollenKey, Season } from '../types'
 
 export type ForageStatus = 'idle' | 'scanning' | 'busy' | 'empty' | 'ready'
+
+// 'partial' = suitability shown but topography (elevation) was unavailable, so it rests
+// on land cover alone.
+export type DcaStatus = 'idle' | 'loading' | 'ready' | 'partial'
 
 export type MobileView = 'map' | 'controls' | 'results'
 
@@ -70,6 +76,9 @@ interface BeeState {
   pendingFlower: LatLon | null
   showBeeFlights: boolean
   showMatingRadius: boolean
+  showDca: boolean
+  dcaCells: DcaCell[]
+  dcaStatus: DcaStatus
   status: string
   mobileView: MobileView
   flyRequest: { lat: number; lon: number; zoom: number; nonce: number } | null
@@ -81,6 +90,7 @@ interface BeeState {
   togglePollen: (k: PollenKey) => void
   toggleBeeFlights: () => void
   toggleMatingRadius: () => void
+  toggleDca: () => void
   flyTo: (lat: number, lon: number, zoom: number) => void
   selectHive: (hive: Hive, focusResults?: boolean) => void
   addHive: (lat: number, lon: number, name: string) => void
@@ -119,6 +129,8 @@ export const useStore = create<BeeState>((set, get) => {
       forageStatus: 'scanning',
       landFeatures: [],
       features: [],
+      dcaCells: [],
+      dcaStatus: get().showDca ? 'loading' : 'idle',
       status: 'Reading the landscape around this hive…',
     })
     const [elements, habitats] = await Promise.all([
@@ -136,6 +148,20 @@ export const useStore = create<BeeState>((set, get) => {
     else if (features.length === 0) forageStatus = 'empty'
 
     set({ landFeatures: land, features, forageStatus, status: '' })
+
+    if (get().showDca) void loadDca(hive, token)
+  }
+
+  // Scores a grid of candidate spots around the hive for drone-congregation-area
+  // suitability (see lib/dca.ts). Reuses the land features already fetched by loadForage;
+  // elevation is fetched here and the model degrades to land-cover-only if it fails.
+  async function loadDca(hive: Hive, token: number) {
+    set({ dcaStatus: 'loading' })
+    const grid = buildGrid(hive)
+    const elevations = await fetchElevations(grid.points)
+    if (token !== selectionToken) return
+    const cells = scoreGrid(grid, elevations, get().landFeatures)
+    set({ dcaCells: cells, dcaStatus: elevations ? 'ready' : 'partial' })
   }
 
   return {
@@ -154,6 +180,9 @@ export const useStore = create<BeeState>((set, get) => {
     pendingFlower: null,
     showBeeFlights: false,
     showMatingRadius: false,
+    showDca: false,
+    dcaCells: [],
+    dcaStatus: 'idle',
     status: '',
     mobileView: 'map',
     flyRequest: null,
@@ -171,6 +200,14 @@ export const useStore = create<BeeState>((set, get) => {
     toggleBeeFlights: () => set((s) => ({ showBeeFlights: !s.showBeeFlights })),
 
     toggleMatingRadius: () => set((s) => ({ showMatingRadius: !s.showMatingRadius })),
+
+    toggleDca: () => {
+      const on = !get().showDca
+      set({ showDca: on })
+      const hive = get().activeHive
+      if (on && hive) void loadDca(hive, selectionToken)
+      else if (!on) set({ dcaCells: [], dcaStatus: 'idle' })
+    },
 
     flyTo: (lat, lon, zoom) =>
       set((s) => ({ flyRequest: { lat, lon, zoom, nonce: (s.flyRequest?.nonce ?? 0) + 1 } })),
@@ -213,6 +250,8 @@ export const useStore = create<BeeState>((set, get) => {
           activeHive: null,
           features: [],
           landFeatures: [],
+          dcaCells: [],
+          dcaStatus: 'idle',
           forageStatus: 'idle',
           weather: initialWeather,
           biosecurity: initialBio,

@@ -2,6 +2,7 @@ import { useStore } from '../store/useStore'
 import { useAddForage } from '../lib/useAddForage'
 import { BeeFlights } from './BeeFlights'
 import { Credits } from './Credits'
+import { DcaPanel } from './DcaPanel'
 import { ForageLegend } from './ForageLegend'
 import { MatingRadius } from './MatingRadius'
 import { PollenSwatches } from './PollenSwatches'
@@ -75,6 +76,11 @@ export function ControlsPanel() {
       <section className={styles.block}>
         <p className={`eyebrow ${styles.blockLabel}`}>Queen mating flight</p>
         <MatingRadius />
+      </section>
+
+      <section className={styles.block}>
+        <p className={`eyebrow ${styles.blockLabel}`}>Drone congregation areas</p>
+        <DcaPanel />
       </section>
 
       <section className={`${styles.block} ${styles.desktopOnly}`}>
