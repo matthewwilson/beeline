@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { bearing, clamp, dayOfYear, distanceMetres } from '../lib/geo'
+import { clamp, dayOfYear } from '../lib/geo'
+import { makeFeature } from '../lib/features'
 import { buildGrid, scoreGrid, type DcaCell } from '../lib/dca'
 import { expectedGdd } from '../lib/scoring'
 import { fetchOverpass, overpassToFeatures } from '../services/overpass'
@@ -43,19 +44,13 @@ const initialBio: BioState = { loading: false, hornetCount: null, failed: false 
 let selectionToken = 0
 
 function flowerFeatures(flowers: Flower[], hive: LatLon): Feature[] {
-  return flowers.map((f) => ({
-    key: f.key,
-    name: `🌼 ${f.plant}`,
-    lat: f.lat,
-    lon: f.lon,
-    distance: distanceMetres(hive, f),
-    dir: bearing(hive, f),
-    confidence: 'observed',
-  }))
+  return flowers.map((f) => makeFeature(f.key, `🌼 ${f.plant}`, f, hive, 'observed'))
 }
 
+// `land` is already distance-filtered by loadForage; only the observed flowers need trimming.
 function mergeFeatures(land: Feature[], flowers: Flower[], hive: LatLon): Feature[] {
-  return [...land, ...flowerFeatures(flowers, hive)].filter((f) => f.distance <= 5000)
+  const observed = flowerFeatures(flowers, hive).filter((f) => f.distance <= 5000)
+  return [...land, ...observed]
 }
 
 interface BeeState {

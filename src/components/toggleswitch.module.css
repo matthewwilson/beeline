@@ -1,0 +1,37 @@
+.toggle {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 10px;
+}
+.toggleOn {
+  border-color: var(--honey);
+  color: var(--honey-soft);
+}
+.toggleTrack {
+  position: relative;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 18px;
+  border-radius: var(--r-pill);
+  background: var(--propolis);
+  border: 1px solid var(--comb-line-strong);
+  transition: background var(--transition), border-color var(--transition);
+}
+.toggleOn .toggleTrack {
+  background: var(--honey);
+  border-color: var(--amber);
+}
+.toggleThumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--wax-dim);
+  transition: transform var(--transition), background var(--transition);
+}
+.toggleOn .toggleThumb {
+  transform: translateX(16px);
+  background: var(--ink-deep);
+}

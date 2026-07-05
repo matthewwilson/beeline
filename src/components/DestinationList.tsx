@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { FORAGE } from '../data/forage'
 import { POLLEN, pollenColour } from '../data/pollen'
 import { fmtDist } from '../lib/geo'
-import { scoreOf } from '../lib/scoring'
+import { useScoredFeatures } from '../lib/useScoredFeatures'
 import { useStore } from '../store/useStore'
 import { useUiStore } from '../store/useUiStore'
 import styles from './results.module.css'
@@ -15,19 +15,15 @@ const EMPTY_COPY: Record<string, string> = {
 }
 
 export function DestinationList() {
-  const features = useStore((s) => s.features)
-  const season = useStore((s) => s.season)
   const selectedPollen = useStore((s) => s.selectedPollen)
-  const gddOffsetDays = useStore((s) => s.weather.gddOffsetDays)
   const forageStatus = useStore((s) => s.forageStatus)
   const flyTo = useUiStore((s) => s.flyTo)
+  const scored = useScoredFeatures()
 
   const rows = useMemo(() => {
-    const ctx = { season, gddOffsetDays, selectedPollen }
-    const scored = features.map((f) => ({ ...f, score: scoreOf(f, ctx) })).sort((a, b) => b.score - a.score)
     const max = scored.length ? scored[0].score : 1
     return scored.slice(0, 12).map((f) => ({ ...f, pct: Math.round((100 * f.score) / max) }))
-  }, [features, season, selectedPollen, gddOffsetDays])
+  }, [scored])
 
   if (forageStatus !== 'ready') return <p className={styles.empty}>{EMPTY_COPY[forageStatus]}</p>
 

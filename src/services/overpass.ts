@@ -1,9 +1,9 @@
 import { FORAGE, TAG_TO_KEY } from '../data/forage'
-import { bearing, distanceMetres } from '../lib/geo'
+import { makeFeature } from '../lib/features'
 import type { Feature, LatLon } from '../types'
 
 // Overpass mirrors are raced in parallel (Promise.any) — availability/latency varies a lot.
-export const OVERPASS = [
+const OVERPASS = [
   'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
   'https://overpass-api.de/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
@@ -15,7 +15,7 @@ export interface OverpassElement {
   tags?: Record<string, string>
 }
 
-export function buildQuery(lat: number, lon: number): string {
+function buildQuery(lat: number, lon: number): string {
   return `[out:json][timeout:25];
 (
   way["landuse"~"orchard|meadow|farmland|allotments|forest|heath"](around:5000,${lat},${lon});
@@ -26,6 +26,8 @@ export function buildQuery(lat: number, lon: number): string {
 out center tags;`
 }
 
+// Races the mirrors; each attempt rejects on a bad response so Promise.any keeps the first
+// mirror that actually works. Returns null only if every mirror fails.
 export async function fetchOverpass(lat: number, lon: number): Promise<OverpassElement[] | null> {
   const query = buildQuery(lat, lon)
   const attempt = (endpoint: string) =>
@@ -55,15 +57,7 @@ export function overpassToFeatures(elements: OverpassElement[], hive: LatLon): F
     const key = rawVal ? TAG_TO_KEY[rawVal] : undefined
     if (!key || !center || center.lat == null) continue
     const pt = { lat: center.lat, lon: center.lon }
-    out.push({
-      key,
-      name: tags.name ?? FORAGE[key].label,
-      lat: pt.lat,
-      lon: pt.lon,
-      distance: distanceMetres(hive, pt),
-      dir: bearing(hive, pt),
-      confidence: 'osm',
-    })
+    out.push(makeFeature(key, tags.name ?? FORAGE[key].label, pt, hive, 'osm'))
   }
   return out
 }

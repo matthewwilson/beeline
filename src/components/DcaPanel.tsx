@@ -1,4 +1,5 @@
 import { useStore } from '../store/useStore'
+import { ToggleSwitch } from './ToggleSwitch'
 import styles from './controls.module.css'
 
 // Colour stops mirroring the map's warm suitability ramp (see MapView `dcaColour`).
@@ -21,18 +22,7 @@ export function DcaPanel() {
 
   return (
     <>
-      <button
-        type="button"
-        className={`btn ${styles.toggle} ${showDca ? styles.toggleOn : ''}`}
-        role="switch"
-        aria-checked={showDca}
-        onClick={toggleDca}
-      >
-        <span className={styles.toggleTrack}>
-          <span className={styles.toggleThumb} />
-        </span>
-        Show drone congregation areas
-      </button>
+      <ToggleSwitch label="Show drone congregation areas" checked={showDca} onToggle={toggleDca} />
 
       {showDca && !activeHive && (
         <p className={`hint ${styles.blockHint}`}>Select a hive to map likely drone-gathering spots.</p>

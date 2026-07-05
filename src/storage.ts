@@ -1,9 +1,9 @@
 import { FORAGE } from './data/forage'
 import type { Flower, Hive } from './types'
 
-export const STORAGE_KEY = 'beeline-hives'
-export const FLOWERS_KEY = 'beeline-flowers'
-export const MY_HIVES_KEY = 'beeline-my-hives'
+const STORAGE_KEY = 'beeline-hives'
+const FLOWERS_KEY = 'beeline-flowers'
+const MY_HIVES_KEY = 'beeline-my-hives'
 
 export function loadHives(): Hive[] {
   try {

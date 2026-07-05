@@ -6,10 +6,10 @@ import { createBees, stepBee } from '../lib/beeFlights'
 import type { Bee } from '../lib/beeFlights'
 import { DEFAULT_STEP_M } from '../lib/dca'
 import { escapeHtml, fmtDist, offsetLatLon } from '../lib/geo'
-import { scoreOf } from '../lib/scoring'
+import { useScoredFeatures } from '../lib/useScoredFeatures'
 import { useStore } from '../store/useStore'
 import { useUiStore } from '../store/useUiStore'
-import type { LatLon, ScoredFeature } from '../types'
+import type { LatLon } from '../types'
 import styles from './map.module.css'
 
 const MAX_FRAME_MS = 48
@@ -92,15 +92,13 @@ export function MapView() {
   const myHiveIds = useStore((s) => s.myHiveIds)
   const flowers = useStore((s) => s.flowers)
   const activeHive = useStore((s) => s.activeHive)
-  const features = useStore((s) => s.features)
-  const season = useStore((s) => s.season)
   const selectedPollen = useStore((s) => s.selectedPollen)
-  const gddOffsetDays = useStore((s) => s.weather.gddOffsetDays)
   const showBeeFlights = useStore((s) => s.showBeeFlights)
   const showMatingRadius = useStore((s) => s.showMatingRadius)
   const showDca = useStore((s) => s.showDca)
   const dcaCells = useStore((s) => s.dcaCells)
   const flyRequest = useUiStore((s) => s.flyRequest)
+  const scored = useScoredFeatures()
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -227,8 +225,6 @@ export function MapView() {
     if (!map || !layers.current) return
     const group = layers.current.forage
     group.clearLayers()
-    const ctx = { season, gddOffsetDays, selectedPollen }
-    const scored = features.map((f) => ({ ...f, score: scoreOf(f, ctx) })).sort((a, b) => b.score - a.score)
     const maxScore = scored.length ? scored[0].score : 1
     for (const f of scored.slice(0, MAX_MARKERS)) {
       if (f.confidence === 'observed') continue
@@ -250,7 +246,7 @@ export function MapView() {
       )
       marker.addTo(group)
     }
-  }, [map, features, season, selectedPollen, gddOffsetDays])
+  }, [map, scored, selectedPollen])
 
   // Drone-congregation-area suitability grid: draw the stronger cells as graded, warm,
   // non-interactive squares (clicks pass through so you can still drop a hive under them).
@@ -289,8 +285,6 @@ export function MapView() {
     group.clearLayers()
     if (!showBeeFlights || !activeHive) return
 
-    const ctx = { season, gddOffsetDays, selectedPollen }
-    const scored: ScoredFeature[] = features.map((f) => ({ ...f, score: scoreOf(f, ctx) }))
     const hive: LatLon = { lat: activeHive.lat, lon: activeHive.lon }
     const bees = createBees(scored, hive)
 
@@ -325,7 +319,7 @@ export function MapView() {
       cancelAnimationFrame(frame)
       group.clearLayers()
     }
-  }, [map, showBeeFlights, activeHive, features, season, selectedPollen, gddOffsetDays, reducedMotion])
+  }, [map, showBeeFlights, activeHive, scored, reducedMotion])
 
   useEffect(() => {
     if (!map || !flyRequest) return
