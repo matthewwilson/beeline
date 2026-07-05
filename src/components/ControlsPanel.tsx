@@ -62,7 +62,7 @@ export function ControlsPanel() {
         <SeasonSelect />
       </section>
 
-      <section className={styles.block}>
+      <section className={`${styles.block} ${styles.desktopOnly}`}>
         <p className={`eyebrow ${styles.blockLabel}`}>Pollen at the entrance</p>
         <p className={`hint ${styles.blockHint}`}>Seeing a colour on returning bees? Tap it to highlight matching sources.</p>
         <PollenSwatches />
