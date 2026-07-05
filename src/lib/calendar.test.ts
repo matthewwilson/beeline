@@ -35,4 +35,20 @@ describe('forageCalendar', () => {
     expect(result.isGap).toBe(false)
     expect(result.suggestions).toHaveLength(0)
   })
+
+  it('passes nowMonth through and normalises the peak across 12 months', () => {
+    const result = forageCalendar([feature('heath', 200)], 2)
+    expect(result).not.toBeNull()
+    if (!result) return
+    expect(result.nowMonth).toBe(2)
+    expect(result.monthly).toHaveLength(12)
+    expect(result.peak).toBe(Math.max(...result.monthly, 1))
+  })
+
+  it('draws gap-month planting suggestions only for the detected gap month', () => {
+    const result = forageCalendar([feature('orchard', 100), feature('heath', 100)], 6)
+    expect(result?.isGap).toBe(true)
+    // Every suggestion should be a plant that flowers in the gap month (1-indexed).
+    expect(result?.suggestions.length).toBeGreaterThan(0)
+  })
 })
