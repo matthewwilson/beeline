@@ -1,0 +1,13 @@
+.section {
+  margin-top: 17px;
+}
+.section:first-child {
+  margin-top: 0;
+}
+.label {
+  display: block;
+  margin-bottom: 9px;
+}
+.hint {
+  margin: 0 0 9px;
+}

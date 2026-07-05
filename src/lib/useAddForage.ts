@@ -3,7 +3,7 @@ import type { ChangeEvent } from 'react'
 import { readPhotoLocation } from './photo'
 import { useStore } from '../store/useStore'
 
-const GEO_OPTS: PositionOptions = { enableHighAccuracy: true, timeout: 8000 }
+export const GEO_OPTS: PositionOptions = { enableHighAccuracy: true, timeout: 8000 }
 
 function foundMessage(takenAt: Date | null): string {
   if (!takenAt) return 'Found the photo location. Choose what was flowering.'

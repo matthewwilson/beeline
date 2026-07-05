@@ -10,7 +10,7 @@ export function ResultsPanel() {
   const removeHive = useStore((s) => s.removeHive)
 
   return (
-    <aside className={`panel scroll-warm ${styles.results}`}>
+    <aside className={`panel scroll-warm panel-sheet ${styles.results}`} data-sheet="results">
       <p className="eyebrow">Readout</p>
       <h2 className={`wordmark ${styles.title}`}>Likely destinations</h2>
 

@@ -1,0 +1,4 @@
+/* The one place the layout breakpoint is defined. Consumed by every CSS module through
+   postcss-custom-media (+ global-data, see postcss.config.js). Styles are authored
+   mobile-first; `@media (--desktop)` adds the floating side-panel desktop layout. */
+@custom-media --desktop (min-width: 820px);
