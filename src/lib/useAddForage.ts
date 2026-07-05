@@ -19,9 +19,9 @@ function foundMessage(takenAt: Date | null): string {
  */
 export function useAddForage() {
   const requestFlowerAt = useStore((s) => s.requestFlowerAt)
+  const requestHiveAt = useStore((s) => s.requestHiveAt)
   const setPlacingFlower = useStore((s) => s.setPlacingFlower)
   const setStatus = useStore((s) => s.setStatus)
-  const addHive = useStore((s) => s.addHive)
   const setMobileView = useUiStore((s) => s.setMobileView)
   const photoInput = useRef<HTMLInputElement>(null)
 
@@ -39,14 +39,9 @@ export function useAddForage() {
     setStatus('Finding your location…')
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const name = window.prompt('Name this hive:', 'My hive')
-        if (name === null) {
-          setStatus('')
-          return
-        }
-        addHive(pos.coords.latitude, pos.coords.longitude, name)
-        // A deliberate add jumps to the forage results on mobile.
-        setMobileView('results')
+        setStatus('')
+        // Opens the HiveNamePicker modal; naming + navigation happen there.
+        requestHiveAt(pos.coords.latitude, pos.coords.longitude)
       },
       () => setStatus('Location denied — tap the map to place your hive.'),
       GEO_OPTS,

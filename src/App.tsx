@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { ControlsPanel } from './components/ControlsPanel'
 import { FlowerPicker } from './components/FlowerPicker'
+import { HiveNamePicker } from './components/HiveNamePicker'
 import { MapAddMenu } from './components/MapAddMenu'
 import { MapExtras } from './components/MapExtras'
 import { MobileNav } from './components/MobileNav'
@@ -55,6 +56,7 @@ export function App() {
       {!isDesktop && <MapAddMenu />}
       {!isDesktop && <MobileNav />}
       <FlowerPicker />
+      <HiveNamePicker />
     </div>
   )
 }

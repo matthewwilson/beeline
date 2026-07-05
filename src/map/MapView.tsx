@@ -128,11 +128,8 @@ export function MapView() {
         st.requestFlowerAt(e.latlng.lat, e.latlng.lng)
         return
       }
-      const name = window.prompt('Name this hive:', 'My hive')
-      if (name === null) return
-      st.addHive(e.latlng.lat, e.latlng.lng, name)
-      // A deliberate add jumps to the forage results on mobile.
-      useUiStore.getState().setMobileView('results')
+      // Opens the HiveNamePicker modal; naming + navigation happen there.
+      st.requestHiveAt(e.latlng.lat, e.latlng.lng)
     })
 
     setMap(m)

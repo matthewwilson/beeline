@@ -67,6 +67,7 @@ interface BeeState {
   biosecurity: BioState
   placingFlower: boolean
   pendingFlower: LatLon | null
+  pendingHive: LatLon | null
   showBeeFlights: boolean
   showMatingRadius: boolean
   showDca: boolean
@@ -82,7 +83,9 @@ interface BeeState {
   toggleMatingRadius: () => void
   toggleDca: () => void
   selectHive: (hive: Hive) => void
-  addHive: (lat: number, lon: number, name: string) => void
+  requestHiveAt: (lat: number, lon: number) => void
+  saveHive: (name: string) => void
+  cancelHive: () => void
   removeHive: (id: number) => void
   requestFlowerAt: (lat: number, lon: number) => void
   cancelFlower: () => void
@@ -167,6 +170,7 @@ export const useStore = create<BeeState>((set, get) => {
     biosecurity: initialBio,
     placingFlower: false,
     pendingFlower: null,
+    pendingHive: null,
     showBeeFlights: false,
     showMatingRadius: false,
     showDca: false,
@@ -202,21 +206,29 @@ export const useStore = create<BeeState>((set, get) => {
       void loadForage(hive, token)
     },
 
-    addHive: (lat, lon, name) => {
+    // Adding a hive is a two-step flow like adding a flower: pick the spot, then name it
+    // in the HiveNamePicker modal. requestHiveAt opens the modal; saveHive commits it.
+    requestHiveAt: (lat, lon) => set({ pendingHive: { lat, lon } }),
+
+    cancelHive: () => set({ pendingHive: null }),
+
+    saveHive: (name) => {
+      const pending = get().pendingHive
+      if (!pending) return
       const hives = get().hives
       const id = Math.max(0, ...hives.map((h) => h.id)) + 1
       const hive: Hive = {
         id,
         name: (name.trim() || 'My hive').slice(0, 60),
-        lat,
-        lon,
+        lat: pending.lat,
+        lon: pending.lon,
         createdAt: new Date().toISOString(),
       }
       const nextHives = [...hives, hive]
       const myHiveIds = [...get().myHiveIds, id]
       saveHives(nextHives)
       saveMyHiveIds(myHiveIds)
-      set({ hives: nextHives, myHiveIds, status: 'Hive saved in this browser.' })
+      set({ hives: nextHives, myHiveIds, pendingHive: null, status: 'Hive saved in this browser.' })
       get().selectHive(hive)
     },
 
