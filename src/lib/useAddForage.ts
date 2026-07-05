@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import type { ChangeEvent } from 'react'
 import { readPhotoLocation } from './photo'
 import { useStore } from '../store/useStore'
+import { useUiStore } from '../store/useUiStore'
 
 export const GEO_OPTS: PositionOptions = { enableHighAccuracy: true, timeout: 8000 }
 
@@ -21,7 +22,14 @@ export function useAddForage() {
   const setPlacingFlower = useStore((s) => s.setPlacingFlower)
   const setStatus = useStore((s) => s.setStatus)
   const addHive = useStore((s) => s.addHive)
+  const setMobileView = useUiStore((s) => s.setMobileView)
   const photoInput = useRef<HTMLInputElement>(null)
+
+  // Placing a flower means tapping the map, so bring the map into view first.
+  const startPlacingFlower = (): void => {
+    setPlacingFlower(true)
+    setMobileView('map')
+  }
 
   const addHiveHere = () => {
     if (!navigator.geolocation) {
@@ -37,6 +45,8 @@ export function useAddForage() {
           return
         }
         addHive(pos.coords.latitude, pos.coords.longitude, name)
+        // A deliberate add jumps to the forage results on mobile.
+        setMobileView('results')
       },
       () => setStatus('Location denied — tap the map to place your hive.'),
       GEO_OPTS,
@@ -45,7 +55,7 @@ export function useAddForage() {
 
   const addFlower = () => {
     if (!navigator.geolocation) {
-      setPlacingFlower(true)
+      startPlacingFlower()
       setStatus('Tap the map where the flower is.')
       return
     }
@@ -56,7 +66,7 @@ export function useAddForage() {
         requestFlowerAt(pos.coords.latitude, pos.coords.longitude)
       },
       () => {
-        setPlacingFlower(true)
+        startPlacingFlower()
         setStatus('Location denied — tap the map where the flower is.')
       },
       GEO_OPTS,

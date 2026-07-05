@@ -1,8 +1,8 @@
 import { faGear, faMapLocationDot, faSpa } from '@fortawesome/free-solid-svg-icons'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { useStore } from '../store/useStore'
-import type { MobileView } from '../store/useStore'
+import { useUiStore } from '../store/useUiStore'
+import type { MobileView } from '../store/useUiStore'
 import styles from './mobilenav.module.css'
 
 const TABS: { view: MobileView; icon: IconDefinition; label: string }[] = [
@@ -12,8 +12,8 @@ const TABS: { view: MobileView; icon: IconDefinition; label: string }[] = [
 ]
 
 export function MobileNav() {
-  const mobileView = useStore((s) => s.mobileView)
-  const setMobileView = useStore((s) => s.setMobileView)
+  const mobileView = useUiStore((s) => s.mobileView)
+  const setMobileView = useUiStore((s) => s.setMobileView)
 
   return (
     <nav className={styles.nav} aria-label="Views">

@@ -8,6 +8,7 @@ import { DEFAULT_STEP_M } from '../lib/dca'
 import { escapeHtml, fmtDist, offsetLatLon } from '../lib/geo'
 import { scoreOf } from '../lib/scoring'
 import { useStore } from '../store/useStore'
+import { useUiStore } from '../store/useUiStore'
 import type { LatLon, ScoredFeature } from '../types'
 import styles from './map.module.css'
 
@@ -99,7 +100,7 @@ export function MapView() {
   const showMatingRadius = useStore((s) => s.showMatingRadius)
   const showDca = useStore((s) => s.showDca)
   const dcaCells = useStore((s) => s.dcaCells)
-  const flyRequest = useStore((s) => s.flyRequest)
+  const flyRequest = useUiStore((s) => s.flyRequest)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -132,6 +133,8 @@ export function MapView() {
       const name = window.prompt('Name this hive:', 'My hive')
       if (name === null) return
       st.addHive(e.latlng.lat, e.latlng.lng, name)
+      // A deliberate add jumps to the forage results on mobile.
+      useUiStore.getState().setMobileView('results')
     })
 
     setMap(m)

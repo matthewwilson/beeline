@@ -9,6 +9,7 @@ import { MapView } from './map/MapView'
 import { GEO_OPTS } from './lib/useAddForage'
 import { useIsDesktop } from './lib/useMediaQuery'
 import { useStore } from './store/useStore'
+import { useUiStore } from './store/useUiStore'
 import styles from './App.module.css'
 
 function locateFirstVisit(flyTo: (lat: number, lon: number, zoom: number) => void): void {
@@ -23,8 +24,8 @@ function locateFirstVisit(flyTo: (lat: number, lon: number, zoom: number) => voi
 
 export function App() {
   const init = useStore((s) => s.init)
-  const flyTo = useStore((s) => s.flyTo)
-  const mobileView = useStore((s) => s.mobileView)
+  const flyTo = useUiStore((s) => s.flyTo)
+  const mobileView = useUiStore((s) => s.mobileView)
   const isDesktop = useIsDesktop()
 
   useEffect(() => {

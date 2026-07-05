@@ -4,6 +4,7 @@ import { POLLEN, pollenColour } from '../data/pollen'
 import { fmtDist } from '../lib/geo'
 import { scoreOf } from '../lib/scoring'
 import { useStore } from '../store/useStore'
+import { useUiStore } from '../store/useUiStore'
 import styles from './results.module.css'
 
 const EMPTY_COPY: Record<string, string> = {
@@ -19,7 +20,7 @@ export function DestinationList() {
   const selectedPollen = useStore((s) => s.selectedPollen)
   const gddOffsetDays = useStore((s) => s.weather.gddOffsetDays)
   const forageStatus = useStore((s) => s.forageStatus)
-  const flyTo = useStore((s) => s.flyTo)
+  const flyTo = useUiStore((s) => s.flyTo)
 
   const rows = useMemo(() => {
     const ctx = { season, gddOffsetDays, selectedPollen }

@@ -23,8 +23,6 @@ export type ForageStatus = 'idle' | 'scanning' | 'busy' | 'empty' | 'ready'
 // on land cover alone.
 export type DcaStatus = 'idle' | 'loading' | 'ready' | 'partial'
 
-export type MobileView = 'map' | 'controls' | 'results'
-
 interface WeatherState {
   current: CurrentWeather | null
   gddTotal: number | null
@@ -80,19 +78,15 @@ interface BeeState {
   dcaCells: DcaCell[]
   dcaStatus: DcaStatus
   status: string
-  mobileView: MobileView
-  flyRequest: { lat: number; lon: number; zoom: number; nonce: number } | null
 
   init: () => void
-  setMobileView: (v: MobileView) => void
   setStatus: (msg: string) => void
   setSeason: (s: Season) => void
   togglePollen: (k: PollenKey) => void
   toggleBeeFlights: () => void
   toggleMatingRadius: () => void
   toggleDca: () => void
-  flyTo: (lat: number, lon: number, zoom: number) => void
-  selectHive: (hive: Hive, focusResults?: boolean) => void
+  selectHive: (hive: Hive) => void
   addHive: (lat: number, lon: number, name: string) => void
   removeHive: (id: number) => void
   requestFlowerAt: (lat: number, lon: number) => void
@@ -184,12 +178,8 @@ export const useStore = create<BeeState>((set, get) => {
     dcaCells: [],
     dcaStatus: 'idle',
     status: '',
-    mobileView: 'map',
-    flyRequest: null,
 
     init: () => set({ hives: loadHives(), flowers: loadFlowers(), myHiveIds: loadMyHiveIds() }),
-
-    setMobileView: (mobileView) => set({ mobileView }),
 
     setStatus: (msg) => set({ status: msg }),
 
@@ -209,14 +199,9 @@ export const useStore = create<BeeState>((set, get) => {
       else if (!on) set({ dcaCells: [], dcaStatus: 'idle' })
     },
 
-    flyTo: (lat, lon, zoom) =>
-      set((s) => ({ flyRequest: { lat, lon, zoom, nonce: (s.flyRequest?.nonce ?? 0) + 1 } })),
-
-    selectHive: (hive, focusResults = false) => {
+    selectHive: (hive) => {
       const token = ++selectionToken
-      // Tapping a hive on the map keeps you on the map (rings + bee flights show
-      // there); only a deliberate add jumps to the Forage results on mobile.
-      set(focusResults ? { activeHive: hive, mobileView: 'results' } : { activeHive: hive })
+      set({ activeHive: hive })
       void loadWeather(hive, token)
       void loadBiosecurity(hive, token)
       void loadForage(hive, token)
@@ -237,7 +222,7 @@ export const useStore = create<BeeState>((set, get) => {
       saveHives(nextHives)
       saveMyHiveIds(myHiveIds)
       set({ hives: nextHives, myHiveIds, status: 'Hive saved in this browser.' })
-      get().selectHive(hive, true)
+      get().selectHive(hive)
     },
 
     removeHive: (id) => {
@@ -299,6 +284,6 @@ export const useStore = create<BeeState>((set, get) => {
       set({ features: mergeFeatures(get().landFeatures, next, hive) })
     },
 
-    setPlacingFlower: (v) => set(v ? { placingFlower: v, mobileView: 'map' } : { placingFlower: v }),
+    setPlacingFlower: (v) => set({ placingFlower: v }),
   }
 })
