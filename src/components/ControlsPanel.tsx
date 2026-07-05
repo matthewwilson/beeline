@@ -3,6 +3,7 @@ import { useAddForage } from '../lib/useAddForage'
 import { BeeFlights } from './BeeFlights'
 import { Credits } from './Credits'
 import { ForageLegend } from './ForageLegend'
+import { MatingRadius } from './MatingRadius'
 import { PollenSwatches } from './PollenSwatches'
 import { SeasonSelect } from './SeasonSelect'
 import { WeatherBox } from './WeatherBox'
@@ -69,6 +70,11 @@ export function ControlsPanel() {
       <section className={styles.block}>
         <p className={`eyebrow ${styles.blockLabel}`}>Foraging flights by age</p>
         <BeeFlights />
+      </section>
+
+      <section className={styles.block}>
+        <p className={`eyebrow ${styles.blockLabel}`}>Queen mating flight</p>
+        <MatingRadius />
       </section>
 
       <section className={`${styles.block} ${styles.desktopOnly}`}>

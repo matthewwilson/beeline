@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
-import { FORAGE, MAX_MARKERS, RING_KM } from '../data/forage'
+import { FORAGE, MATING_RADIUS_KM, MAX_MARKERS, RING_KM } from '../data/forage'
 import { POLLEN, pollenColour } from '../data/pollen'
 import { createBees, stepBee } from '../lib/beeFlights'
 import type { Bee } from '../lib/beeFlights'
@@ -73,6 +73,7 @@ export function MapView() {
     forage: L.LayerGroup
     flower: L.LayerGroup
     ring: L.LayerGroup
+    mating: L.LayerGroup
     bee: L.LayerGroup
   } | null>(null)
   const [reducedMotion, setReducedMotion] = useState(
@@ -88,6 +89,7 @@ export function MapView() {
   const selectedPollen = useStore((s) => s.selectedPollen)
   const gddOffsetDays = useStore((s) => s.weather.gddOffsetDays)
   const showBeeFlights = useStore((s) => s.showBeeFlights)
+  const showMatingRadius = useStore((s) => s.showMatingRadius)
   const flyRequest = useStore((s) => s.flyRequest)
 
   useEffect(() => {
@@ -104,6 +106,7 @@ export function MapView() {
       forage: L.layerGroup().addTo(m),
       flower: L.layerGroup().addTo(m),
       ring: L.layerGroup().addTo(m),
+      mating: L.layerGroup().addTo(m),
       bee: L.layerGroup().addTo(m),
     }
 
@@ -170,7 +173,7 @@ export function MapView() {
     if (!map || !layers.current) return
     const group = layers.current.ring
     group.clearLayers()
-    if (!activeHive) return
+    if (!activeHive || showMatingRadius) return
     for (const km of [...RING_KM].reverse()) {
       L.circle([activeHive.lat, activeHive.lon], {
         radius: km * 1000,
@@ -185,7 +188,26 @@ export function MapView() {
         .bindTooltip(`${km} km`)
     }
     map.flyTo([activeHive.lat, activeHive.lon], 13, { duration: 0.6 })
-  }, [map, activeHive])
+  }, [map, activeHive, showMatingRadius])
+
+  useEffect(() => {
+    if (!map || !layers.current) return
+    const group = layers.current.mating
+    group.clearLayers()
+    if (!activeHive || !showMatingRadius) return
+    L.circle([activeHive.lat, activeHive.lon], {
+      radius: MATING_RADIUS_KM * 1000,
+      color: '#8b5cf6',
+      weight: 1.5,
+      opacity: 0.7,
+      fillColor: '#8b5cf6',
+      fillOpacity: 0.06,
+      dashArray: '4 5',
+    })
+      .addTo(group)
+      .bindTooltip(`Queen mating range · ~${MATING_RADIUS_KM} km`)
+    map.flyTo([activeHive.lat, activeHive.lon], 12, { duration: 0.6 })
+  }, [map, activeHive, showMatingRadius])
 
   useEffect(() => {
     if (!map || !layers.current) return

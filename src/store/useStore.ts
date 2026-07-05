@@ -69,6 +69,7 @@ interface BeeState {
   placingFlower: boolean
   pendingFlower: LatLon | null
   showBeeFlights: boolean
+  showMatingRadius: boolean
   status: string
   mobileView: MobileView
   flyRequest: { lat: number; lon: number; zoom: number; nonce: number } | null
@@ -79,6 +80,7 @@ interface BeeState {
   setSeason: (s: Season) => void
   togglePollen: (k: PollenKey) => void
   toggleBeeFlights: () => void
+  toggleMatingRadius: () => void
   flyTo: (lat: number, lon: number, zoom: number) => void
   selectHive: (hive: Hive, focusResults?: boolean) => void
   addHive: (lat: number, lon: number, name: string) => void
@@ -151,6 +153,7 @@ export const useStore = create<BeeState>((set, get) => {
     placingFlower: false,
     pendingFlower: null,
     showBeeFlights: false,
+    showMatingRadius: false,
     status: '',
     mobileView: 'map',
     flyRequest: null,
@@ -166,6 +169,8 @@ export const useStore = create<BeeState>((set, get) => {
     togglePollen: (k) => set((s) => ({ selectedPollen: s.selectedPollen === k ? null : k })),
 
     toggleBeeFlights: () => set((s) => ({ showBeeFlights: !s.showBeeFlights })),
+
+    toggleMatingRadius: () => set((s) => ({ showMatingRadius: !s.showMatingRadius })),
 
     flyTo: (lat, lon, zoom) =>
       set((s) => ({ flyRequest: { lat, lon, zoom, nonce: (s.flyRequest?.nonce ?? 0) + 1 } })),
