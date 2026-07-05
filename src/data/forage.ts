@@ -35,3 +35,9 @@ export const CONFIDENCE_MULT: Record<Confidence, number> = { observed: 1.5, surv
 
 export const RING_KM = [1, 3, 5]
 export const MAX_MARKERS = 150
+
+// Queen mating flight radius. Queens fly to drone congregation areas typically
+// 2-3 km from the hive; DCAs sit up to ~5 km out, and genetic paternity work
+// (Jensen et al., 2005) found 90% of matings within ~7.5 km. 5 km is the
+// well-supported practical reach and matches the outer distance ring.
+export const MATING_RADIUS_KM = 5
