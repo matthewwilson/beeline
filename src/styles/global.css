@@ -224,8 +224,8 @@ a:hover {
   border-right: none;
   display: none;
 }
-:where([data-mobile-view='controls']) .panel-sheet[data-sheet='controls'],
-:where([data-mobile-view='results']) .panel-sheet[data-sheet='results'] {
+:where([data-view='setup']) .panel-sheet[data-sheet='setup'],
+:where([data-view='forage']) .panel-sheet[data-sheet='forage'] {
   display: block;
 }
 @media (--desktop) {

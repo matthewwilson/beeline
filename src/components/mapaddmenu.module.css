@@ -5,7 +5,7 @@
   display: none;
 }
 
-:global([data-mobile-view='map']) .wrap {
+:global([data-view='map']) .wrap {
   display: flex;
   position: fixed;
   top: calc(14px + env(safe-area-inset-top));
@@ -16,7 +16,7 @@
   gap: 10px;
   pointer-events: none;
 }
-:global([data-mobile-view='map']) .wrap > * {
+:global([data-view='map']) .wrap > * {
   pointer-events: auto;
 }
 

@@ -1,11 +1,13 @@
 import { useEffect } from 'react'
-import { ControlsPanel } from './components/ControlsPanel'
+import { DesktopRail } from './components/DesktopRail'
+import { ForagePanel } from './components/ForagePanel'
 import { FlowerPicker } from './components/FlowerPicker'
 import { HiveNamePicker } from './components/HiveNamePicker'
 import { MapAddMenu } from './components/MapAddMenu'
-import { MapExtras } from './components/MapExtras'
+import { MobileFieldDrawer } from './components/MobileFieldDrawer'
 import { MobileNav } from './components/MobileNav'
-import { ResultsPanel } from './components/ResultsPanel'
+import { MapPanel } from './components/MapPanel'
+import { SetupPanel } from './components/SetupPanel'
 import { MapView } from './map/MapView'
 import { GEO_OPTS } from './lib/useAddForage'
 import { useIsDesktop } from './lib/useMediaQuery'
@@ -26,7 +28,7 @@ function locateFirstVisit(flyTo: (lat: number, lon: number, zoom: number) => voi
 export function App() {
   const init = useStore((s) => s.init)
   const flyTo = useUiStore((s) => s.flyTo)
-  const mobileView = useUiStore((s) => s.mobileView)
+  const view = useUiStore((s) => s.view)
   const isDesktop = useIsDesktop()
 
   useEffect(() => {
@@ -34,24 +36,23 @@ export function App() {
     locateFirstVisit(flyTo)
   }, [init, flyTo])
 
-  // Desktop floats the panels over a full-bleed map and ignores the tab attribute; mobile
-  // is a tab-switched SPA. Mobile-only chrome (nav, add FAB, map extras) never mounts on
-  // desktop, and the shared weather/pollen/legend sections mount exactly once per viewport
-  // (in the controls panel on desktop, in the map extras on mobile).
+  // The map stays mounted as the workspace on every viewport. Mobile keeps the tabbed
+  // sheet model; desktop uses the same view hierarchy through a compact rail and one
+  // contextual side panel.
   return (
-    <div className={styles.app} data-mobile-view={isDesktop ? undefined : mobileView}>
+    <div className={styles.app} data-view={view}>
       <div className={styles.mapWrap}>
         <MapView />
       </div>
 
-      {!isDesktop && mobileView === 'map' && (
-        <div className={`panel scroll-warm ${styles.mapExtras}`}>
-          <MapExtras />
-        </div>
-      )}
+      {isDesktop && <DesktopRail />}
+      {isDesktop && view === 'map' && <MapPanel isDesktop />}
+      {isDesktop && view === 'forage' && <ForagePanel isDesktop />}
+      {isDesktop && view === 'setup' && <SetupPanel isDesktop />}
 
-      <ControlsPanel isDesktop={isDesktop} />
-      <ResultsPanel />
+      {!isDesktop && view === 'map' && <MobileFieldDrawer />}
+      {!isDesktop && <ForagePanel isDesktop={false} />}
+      {!isDesktop && <SetupPanel isDesktop={false} />}
 
       {!isDesktop && <MapAddMenu />}
       {!isDesktop && <MobileNav />}

@@ -12,7 +12,13 @@ export function SeasonSelect() {
   const season = useStore((s) => s.season)
   const setSeason = useStore((s) => s.setSeason)
   return (
-    <select className="select" value={season} onChange={(e) => setSeason(e.target.value as Season)} aria-label="Season">
+    <select
+      className="select"
+      name="season"
+      value={season}
+      onChange={(e) => setSeason(e.target.value as Season)}
+      aria-label="Season"
+    >
       {OPTIONS.map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}

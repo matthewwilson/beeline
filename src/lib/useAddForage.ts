@@ -22,13 +22,13 @@ export function useAddForage() {
   const requestHiveAt = useStore((s) => s.requestHiveAt)
   const setPlacingFlower = useStore((s) => s.setPlacingFlower)
   const setStatus = useStore((s) => s.setStatus)
-  const setMobileView = useUiStore((s) => s.setMobileView)
+  const setView = useUiStore((s) => s.setView)
   const photoInput = useRef<HTMLInputElement>(null)
 
   // Placing a flower means tapping the map, so bring the map into view first.
   const startPlacingFlower = (): void => {
     setPlacingFlower(true)
-    setMobileView('map')
+    setView('map')
   }
 
   const addHiveHere = () => {

@@ -12,7 +12,7 @@ export function HiveNamePicker() {
   const pendingHive = useStore((s) => s.pendingHive)
   const saveHive = useStore((s) => s.saveHive)
   const cancelHive = useStore((s) => s.cancelHive)
-  const setMobileView = useUiStore((s) => s.setMobileView)
+  const setView = useUiStore((s) => s.setView)
 
   const [name, setName] = useState('')
 
@@ -21,8 +21,7 @@ export function HiveNamePicker() {
   const onSave = () => {
     saveHive(name)
     setName('')
-    // A deliberate add jumps to the forage results on mobile.
-    setMobileView('results')
+    setView('map')
   }
 
   const onCancel = () => {

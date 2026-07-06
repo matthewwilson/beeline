@@ -64,7 +64,7 @@ export function MapAddMenu() {
 
       {status && <p className={styles.status}>{status}</p>}
 
-      <input ref={photoInput} type="file" accept="image/*" hidden onChange={onPhotoChosen} />
+      <input ref={photoInput} type="file" name="flowerPhoto" accept="image/*" hidden onChange={onPhotoChosen} />
     </div>
   )
 }
