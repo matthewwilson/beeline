@@ -15,7 +15,7 @@ land cover, habitats, weather, hornet records, elevation) is fetched client-side
 APIs. The app is a PWA and its shell works offline, but live data is deliberately never cached.
 
 Geography note: the app is tuned for **Northern Ireland**. Forage values, bloom windows, the
-GDD baseline and the authoritative habitat/disease layers are NI-specific.
+growing degree days baseline and the authoritative habitat/disease layers are NI-specific.
 
 ## Tech stack
 
@@ -62,14 +62,15 @@ src/
   store/useUiStore.ts View/navigation store - mobileView tab + map fly requests
   map/               MapView.tsx - the ONE Leaflet component + its CSS module
   components/        React UI panels (each with a co-located *.module.css)
-  lib/               Pure logic, unit-tested: geo, features, scoring, calendar, dca, beeFlights,
+  lib/               Pure logic, unit-tested: geo, features, scoring, calendar,
+                    droneCongregationArea, beeFlights,
                     weather, photo; plus hooks useAddForage / useScoredFeatures / useMediaQuery
   services/          Network fetches to external APIs via fetchJson (http, overpass, habitats,
-                    weather, nbn, elevation)
+                    weather, nationalBiodiversityNetwork, elevation)
   data/              Static domain data tables: forage, bloom, plants, pollen
   styles/            tokens.css (design tokens) + global.css (base styles) + media.css (breakpoint)
-references/          Provenance docs for the forage values and the DCA model (source of truth
-                    for the numbers - update these when the numbers change)
+references/          Provenance docs for the forage values and the drone congregation area model
+                    (source of truth for the numbers - update these when the numbers change)
 scripts/            generate-icons.mjs (PWA icon generation via sharp)
 ```
 
@@ -77,9 +78,10 @@ scripts/            generate-icons.mjs (PWA icon generation via sharp)
 
 **`src/data/*` - static domain tables.** `forage.ts` is the heart of the model: `FORAGE` maps each
 `ForageKey` to a relative forage value (`base`, 0-10), display colour, characteristic pollen colour
-and representative plant. `TAG_TO_KEY` maps raw OSM tags onto forage keys. `CONFIDENCE_MULT` weights
-observed > surveyed > OSM sources. `bloom.ts` holds bloom windows (day-of-year quadruples), manual
-per-season multipliers and the GDD baseline curve. The `base` values and bloom windows are
+and representative plant. `TAG_TO_FORAGE_KEY` maps raw OpenStreetMap tags onto forage keys.
+`CONFIDENCE_WEIGHTS` weights observed > surveyed > openStreetMap sources. `bloom.ts` holds bloom
+windows (day-of-year quadruples), manual per-season multipliers and the growing degree days
+baseline curve. The `base` values and bloom windows are
 research-grounded - see `references/forage-values.md`. **If you change a number, update the reference.**
 
 **`src/services/*` - external API clients.** Each returns typed data or `null`/`[]` on failure
@@ -89,17 +91,19 @@ which adds a `res.ok` check + timeout + soft-fail so `null` (failed) stays disti
 - `overpass.ts` - OpenStreetMap land cover via Overpass; races 4 mirrors with `Promise.any` (keeps
   its own throw-on-error fetch so the race picks the first working mirror).
 - `habitats.ts` - DAERA/NIEA Priority Habitats (NI) via ArcGIS FeatureServers; marked `surveyed`.
-- `weather.ts` - Open-Meteo current weather + cumulative growing-degree-days.
-- `nbn.ts` - NBN Atlas Asian hornet (Vespa velutina) occurrence count within 10 km.
-- `elevation.ts` - Open-Meteo elevation for the DCA model (chunked to 100 points/request).
+- `weather.ts` - Open-Meteo current weather + cumulative growing degree days.
+- `nationalBiodiversityNetwork.ts` - National Biodiversity Network Atlas Asian hornet
+  (Vespa velutina) occurrence count within 10 km.
+- `elevation.ts` - Open-Meteo elevation for the drone congregation area model
+  (chunked to 100 points/request).
 
 **`src/lib/*` - pure logic + a few hooks.** The pure, tested modules take no React and no network:
 `geo.ts` (distance, bearing, centroid, day-of-year, formatting), `features.ts` (`makeFeature` -
 the shared distance/dir Feature builder), `scoring.ts` (the core `scoreOf` = base × season/bloom ×
 distance decay × confidence, plus pollen filtering), `calendar.ts` (year-round forage curve +
-June-gap detector), `dca.ts` (drone-congregation-area suitability grid - see `references/dca-model.md`),
+June-gap detector), `droneCongregationArea.ts` (drone-congregation-area suitability grid - see `references/dca-model.md`),
 `beeFlights.ts` (animated bee flight simulation), `weather.ts` (`flyVerdict`/`seasonPhrase`),
-`photo.ts` (EXIF geolocation). The hooks are the exception: `useAddForage.ts` (shared add
+`photo.ts` (image metadata geolocation). The hooks are the exception: `useAddForage.ts` (shared add
 hive/flower/photo actions), `useScoredFeatures.ts` (the one memoised score/sort pipeline used by
 the destination list, forage markers and bee flights) and `useMediaQuery.ts` (`useIsDesktop`, the
 single JS source of the layout breakpoint).
@@ -114,7 +118,7 @@ sites via `useUiStore.setMobileView`, never a side-effect of `selectHive`/`saveH
 
 **`src/map/MapView.tsx` - the single Leaflet boundary.** Leaflet is imperative and mutates the DOM,
 so it is quarantined in one component. It subscribes to the store and imperatively syncs Leaflet
-layers (markers, rings, bee-flight animation, DCA cells) to state. **Do not create other components
+layers (markers, rings, bee-flight animation, drone congregation area cells) to state. **Do not create other components
 that touch the `L` (Leaflet) instance** - route map interactions through the store.
 
 **`src/components/*` - declarative UI panels.** Each reads from the stores via selectors and
@@ -132,6 +136,11 @@ authored mobile-first with one desktop layer (`@media (--desktop)`).
   `erasableSyntaxOnly` are on. Use `import type { ... }` for type-only imports. No `enum` /
   `namespace` (erasable syntax only). Prefer explicit return types on exported functions.
 - **No default exports** - use named exports throughout.
+- **Expand acronyms in code-owned names.** Variable names, function names, type/interface names,
+  component names, filenames and store fields should spell out domain terms. Use
+  `DroneCongregationArea`, `growingDegreeDays`, `nationalBiodiversityNetwork` and `openStreetMap`
+  rather than `Dca`, `gdd`, `nbn` or `osm`. External package/API names and browser/platform types
+  may keep their official casing when imported or shown in prose.
 - **Styling** is CSS Modules (`*.module.css`) co-located with each component, plus global design
   tokens in `src/styles/tokens.css`. The identity is a dark, warm "apiary instrument" chrome with a
   honey accent. Use the CSS custom properties (`--honey`, `--wax`, `--panel`, `--r-md`, the
@@ -150,7 +159,7 @@ authored mobile-first with one desktop layer (`@media (--desktop)`).
 - **Services fail soft.** Return `null`/`[]` on error; never let a fetch reject into the UI. Reach
   for `fetchJson` (`services/http.ts`) for new clients so the `res.ok`/timeout/soft-fail is uniform.
 - **Tests** live beside the code as `*.test.ts` and cover `src/lib`, `src/services`, `src/storage`
-  and the store. Add tests when you touch scoring, geo, calendar, dca, beeFlights, features, weather,
+  and the store. Add tests when you touch scoring, geo, calendar, droneCongregationArea, beeFlights, features, weather,
   a service or the store's stale-guard. Vitest runs in the `node` environment (stub `fetch`/
   `localStorage`).
 - **Spelling and punctuation:** this project uses UK/British spelling (colour, favour, behaviour).

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchCurrentWeather, fetchDailyForecast, fetchGddTotal } from './weather'
+import { fetchCurrentWeather, fetchDailyForecast, fetchGrowingDegreeDaysTotal } from './weather'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -62,20 +62,20 @@ describe('fetchDailyForecast', () => {
   })
 })
 
-describe('fetchGddTotal', () => {
+describe('fetchGrowingDegreeDaysTotal', () => {
   it('sums growing-degree-days above the base 5C, ignoring nulls', async () => {
     stubJson({ daily: { temperature_2m_mean: [10, 4, null, 8] } })
     // max(0,10-5) + max(0,4-5) + 0 + max(0,8-5) = 5 + 0 + 0 + 3 = 8
-    expect(await fetchGddTotal(54, -6)).toBe(8)
+    expect(await fetchGrowingDegreeDaysTotal(54, -6)).toBe(8)
   })
 
   it('returns 0 when the archive has no daily means', async () => {
     stubJson({})
-    expect(await fetchGddTotal(54, -6)).toBe(0)
+    expect(await fetchGrowingDegreeDaysTotal(54, -6)).toBe(0)
   })
 
   it('returns null on an HTTP error', async () => {
     stubJson({}, 500)
-    expect(await fetchGddTotal(54, -6)).toBeNull()
+    expect(await fetchGrowingDegreeDaysTotal(54, -6)).toBeNull()
   })
 })

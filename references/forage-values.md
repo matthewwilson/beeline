@@ -46,7 +46,7 @@ used only to express the current year as "~N days ahead/behind average". It is a
 ## Field flowers (`FORAGE_PLANTS`)
 The "add a flower" field log maps each curated plant to an existing forage class so it inherits
 that class's colour, pollen colour and Baude-derived base value; the observation is then scored
-with the highest confidence tier (`observed` ×1.5 > `surveyed` ×1.25 > `osm` ×1.0), since a plant
+with the highest confidence tier (`observed` ×1.5 > `surveyed` ×1.25 > `openStreetMap` ×1.0), since a plant
 you saw in person is stronger evidence than a land-use polygon. Mapping: hawthorn/blackthorn→hedge;
 bramble/gorse/ivy→scrub; heather→heath; white clover/dandelion/knapweed→meadow; willow/lime/
 sycamore→wood; oilseed rape/field beans→farmland; apple→orchard; phacelia/borage/comfrey/

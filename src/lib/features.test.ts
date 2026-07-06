@@ -5,16 +5,16 @@ const hive = { lat: 54.6, lon: -5.9 }
 
 describe('makeFeature', () => {
   it('fills distance and compass bearing from the hive', () => {
-    const f = makeFeature('meadow', 'Meadow', { lat: 54.61, lon: -5.9 }, hive, 'osm')
+    const f = makeFeature('meadow', 'Meadow', { lat: 54.61, lon: -5.9 }, hive, 'openStreetMap')
     expect(f.key).toBe('meadow')
     expect(f.name).toBe('Meadow')
-    expect(f.confidence).toBe('osm')
+    expect(f.confidence).toBe('openStreetMap')
     expect(f.distance).toBeGreaterThan(0)
     expect(f.dir).toBe('N') // due north of the hive
   })
 
   it('omits area unless it is passed', () => {
-    const f = makeFeature('wood', 'Wood', hive, hive, 'osm')
+    const f = makeFeature('wood', 'Wood', hive, hive, 'openStreetMap')
     expect('area' in f).toBe(false)
   })
 

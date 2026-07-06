@@ -29,7 +29,7 @@ function ForecastStrip({ forecast }: { forecast: DailyForecast[] }) {
 }
 
 export function WeatherBox() {
-  const { current, forecast, gddTotal, gddOffsetDays, loading } = useStore((s) => s.weather)
+  const { current, forecast, growingDegreeDaysTotal, growingDegreeDaysOffsetDays, loading } = useStore((s) => s.weather)
   const season = useStore((s) => s.season)
 
   const verdict = flyVerdict(current)
@@ -48,9 +48,9 @@ export function WeatherBox() {
         </div>
       )}
       {forecast && forecast.length > 0 && <ForecastStrip forecast={forecast} />}
-      {season === 'auto' && gddTotal != null && (
+      {season === 'auto' && growingDegreeDaysTotal != null && (
         <div className={styles.weatherBloom}>
-          Auto season from live weather · growing season {seasonPhrase(gddOffsetDays)} · {gddTotal} GDD so far
+          Auto season from live weather · growing season {seasonPhrase(growingDegreeDaysOffsetDays)} · {growingDegreeDaysTotal} Growing degree days so far
         </div>
       )}
     </div>

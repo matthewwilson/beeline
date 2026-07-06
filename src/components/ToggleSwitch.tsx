@@ -8,7 +8,7 @@ interface ToggleSwitchProps {
 
 /**
  * A labelled on/off switch (button with role="switch"). Shared by the bee-flight, mating
- * radius and DCA panels so the track/thumb markup lives in one place.
+ * radius and drone congregation area panels so the track/thumb markup lives in one place.
  */
 export function ToggleSwitch({ label, checked, onToggle }: ToggleSwitchProps) {
   return (

@@ -22,8 +22,9 @@ export const BLOOM: Record<ForageKey, [number, number, number, number]> = {
   allotments: [110, 150, 250, 288],
 }
 
-// Rough NI-lowland cumulative GDD (base 5C) by day-of-year, for a "season ahead/behind" estimate only.
-export const GDD_BASELINE: Array<[number, number]> = [
+// Rough Northern Ireland lowland cumulative growing degree days (base 5C) by day-of-year,
+// for a "season ahead/behind" estimate only.
+export const GROWING_DEGREE_DAYS_BASELINE: Array<[number, number]> = [
   [1, 2],
   [31, 15],
   [59, 35],

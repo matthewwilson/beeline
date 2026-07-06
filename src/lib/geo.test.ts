@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bearing, clamp, dayOfYear, distanceMetres, escapeHtml, fmtDist, polygonCentroid } from './geo'
+import { bearing, clamp, dayOfYear, distanceMetres, escapeMarkup, formatDistance, polygonCentroid } from './geo'
 
 describe('distanceMetres', () => {
   it('is zero for identical points', () => {
@@ -46,11 +46,11 @@ describe('helpers', () => {
     expect(clamp(-40, -25, 25)).toBe(-25)
     expect(clamp(10, -25, 25)).toBe(10)
   })
-  it('fmtDist switches units at 1 km', () => {
-    expect(fmtDist(450)).toBe('450 m')
-    expect(fmtDist(2500)).toBe('2.5 km')
+  it('formatDistance switches units at 1 km', () => {
+    expect(formatDistance(450)).toBe('450 m')
+    expect(formatDistance(2500)).toBe('2.5 km')
   })
-  it('escapeHtml neutralises markup', () => {
-    expect(escapeHtml('<b>"x" & y</b>')).toBe('&lt;b&gt;&quot;x&quot; &amp; y&lt;/b&gt;')
+  it('escapeMarkup neutralises markup', () => {
+    expect(escapeMarkup('<b>"x" & y</b>')).toBe('&lt;b&gt;&quot;x&quot; &amp; y&lt;/b&gt;')
   })
 })

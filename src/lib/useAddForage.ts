@@ -3,7 +3,7 @@ import type { ChangeEvent } from 'react'
 import { useStore } from '../store/useStore'
 import { useUiStore } from '../store/useUiStore'
 
-export const GEO_OPTS: PositionOptions = { enableHighAccuracy: true, timeout: 8000 }
+export const GEOLOCATION_OPTIONS: PositionOptions = { enableHighAccuracy: true, timeout: 8000 }
 
 function foundMessage(takenAt: Date | null): string {
   if (!takenAt) return 'Found the photo location. Choose what was flowering.'
@@ -43,7 +43,7 @@ export function useAddForage() {
         requestHiveAt(pos.coords.latitude, pos.coords.longitude)
       },
       () => setStatus('Location denied — tap the map to place your hive.'),
-      GEO_OPTS,
+      GEOLOCATION_OPTIONS,
     )
   }
 
@@ -63,7 +63,7 @@ export function useAddForage() {
         startPlacingFlower()
         setStatus('Location denied — tap the map where the flower is.')
       },
-      GEO_OPTS,
+      GEOLOCATION_OPTIONS,
     )
   }
 

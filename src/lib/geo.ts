@@ -11,11 +11,11 @@ export function distanceMetres(a: LatLon, b: LatLon): number {
   return 2 * R * Math.asin(Math.sqrt(s))
 }
 
-const METRES_PER_DEG_LAT = 111320
+const METRES_PER_DEGREE_LATITUDE = 111320
 
 export function offsetLatLon(origin: LatLon, eastMetres: number, northMetres: number): LatLon {
-  const dLat = northMetres / METRES_PER_DEG_LAT
-  const dLon = eastMetres / (METRES_PER_DEG_LAT * Math.cos((origin.lat * Math.PI) / 180))
+  const dLat = northMetres / METRES_PER_DEGREE_LATITUDE
+  const dLon = eastMetres / (METRES_PER_DEGREE_LATITUDE * Math.cos((origin.lat * Math.PI) / 180))
   return { lat: origin.lat + dLat, lon: origin.lon + dLon }
 }
 
@@ -31,12 +31,12 @@ export function bearing(a: LatLon, b: LatLon): string {
   return COMPASS[Math.round(deg / 45) % 8]
 }
 
-export interface GeoJSONGeometry {
+export interface FeatureGeometry {
   type: string
   coordinates: number[][][] | number[][][][]
 }
 
-export function polygonCentroid(geom: GeoJSONGeometry | null | undefined): [number, number] | null {
+export function polygonCentroid(geom: FeatureGeometry | null | undefined): [number, number] | null {
   if (!geom) return null
   let ring: number[][] | undefined
   if (geom.type === 'Polygon') ring = (geom.coordinates as number[][][])[0]
@@ -59,11 +59,11 @@ export function dayOfYear(date: Date = new Date()): number {
 
 export const clamp = (v: number, a: number, b: number): number => Math.max(a, Math.min(b, v))
 
-export function fmtDist(m: number): string {
-  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`
+export function formatDistance(metres: number): string {
+  return metres < 1000 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(1)} km`
 }
 
-export function escapeHtml(s: unknown): string {
+export function escapeMarkup(s: unknown): string {
   const map: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }
   return String(s).replace(/[&<>"]/g, (c) => map[c])
 }

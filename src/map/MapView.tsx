@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
-import { FORAGE, MATING_RADIUS_KM, MAX_MARKERS, RING_KM } from '../data/forage'
+import { FORAGE, MATING_RADIUS_KILOMETRES, MAX_MARKERS, RING_KILOMETRES } from '../data/forage'
 import { POLLEN, pollenColour } from '../data/pollen'
 import { createBees, stepBee } from '../lib/beeFlights'
 import type { Bee } from '../lib/beeFlights'
-import { cellFactorRows, DEFAULT_STEP_M } from '../lib/dca'
-import { escapeHtml, fmtDist, offsetLatLon } from '../lib/geo'
+import { cellFactorRows, DEFAULT_STEP_METRES } from '../lib/droneCongregationArea'
+import { escapeMarkup, formatDistance, offsetLatLon } from '../lib/geo'
 import { useScoredFeatures } from '../lib/useScoredFeatures'
 import { useStore } from '../store/useStore'
 import { useUiStore } from '../store/useUiStore'
@@ -39,7 +39,7 @@ function flyIcon(colour: string): L.DivIcon {
 }
 
 // Warm suitability ramp: amber (lower) → deep red (higher). t is 0..1.
-function dcaColour(t: number): string {
+function droneCongregationAreaColour(t: number): string {
   return `hsl(${45 - 33 * t}, 85%, ${56 - 10 * t}%)`
 }
 
@@ -76,7 +76,7 @@ export function MapView() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<L.Map | null>(null)
   const layers = useRef<{
-    dca: L.LayerGroup
+    droneCongregationArea: L.LayerGroup
     hive: L.LayerGroup
     forage: L.LayerGroup
     flower: L.LayerGroup
@@ -95,9 +95,9 @@ export function MapView() {
   const selectedPollen = useStore((s) => s.selectedPollen)
   const showBeeFlights = useStore((s) => s.showBeeFlights)
   const showMatingRadius = useStore((s) => s.showMatingRadius)
-  const showDca = useStore((s) => s.showDca)
-  const dcaCells = useStore((s) => s.dcaCells)
-  const dcaStatus = useStore((s) => s.dcaStatus)
+  const showDroneCongregationArea = useStore((s) => s.showDroneCongregationArea)
+  const droneCongregationAreaCells = useStore((s) => s.droneCongregationAreaCells)
+  const droneCongregationAreaStatus = useStore((s) => s.droneCongregationAreaStatus)
   const flyRequest = useUiStore((s) => s.flyRequest)
   const scored = useScoredFeatures()
 
@@ -111,8 +111,8 @@ export function MapView() {
     L.control.zoom({ position: 'bottomright' }).addTo(m)
 
     layers.current = {
-      // The DCA grid sits under everything else so markers and rings stay legible.
-      dca: L.layerGroup().addTo(m),
+      // The drone congregation area grid sits under everything else so markers and rings stay legible.
+      droneCongregationArea: L.layerGroup().addTo(m),
       hive: L.layerGroup().addTo(m),
       forage: L.layerGroup().addTo(m),
       flower: L.layerGroup().addTo(m),
@@ -162,9 +162,9 @@ export function MapView() {
     if (!activeHive) return
     for (const f of flowers) {
       const marker = L.marker([f.lat, f.lon], { icon: flowerIcon() })
-      const note = f.note ? `<div class="pin-pop__meta">${escapeHtml(f.note)}</div>` : ''
+      const note = f.note ? `<div class="pin-pop__meta">${escapeMarkup(f.note)}</div>` : ''
       marker.bindPopup(
-        `<div class="pin-pop__title">🌼 ${escapeHtml(f.plant)} <span class="pin-pop__badge">✓ you spotted</span></div>` +
+        `<div class="pin-pop__title">🌼 ${escapeMarkup(f.plant)} <span class="pin-pop__badge">✓ you spotted</span></div>` +
           note +
           `<button class="pin-remove" data-flower="${f.id}">Remove</button>`,
       )
@@ -184,18 +184,18 @@ export function MapView() {
     const group = layers.current.ring
     group.clearLayers()
     if (!activeHive || showMatingRadius) return
-    for (const km of [...RING_KM].reverse()) {
+    for (const kilometres of [...RING_KILOMETRES].reverse()) {
       L.circle([activeHive.lat, activeHive.lon], {
-        radius: km * 1000,
+        radius: kilometres * 1000,
         color: '#c47f00',
         weight: 1,
         opacity: 0.55,
         fillColor: '#f6a800',
-        fillOpacity: km === 1 ? 0.1 : 0.04,
+        fillOpacity: kilometres === 1 ? 0.1 : 0.04,
         dashArray: '4 5',
       })
         .addTo(group)
-        .bindTooltip(`${km} km`)
+        .bindTooltip(`${kilometres} km`)
     }
     map.flyTo([activeHive.lat, activeHive.lon], 13, { duration: 0.6 })
   }, [map, activeHive, showMatingRadius])
@@ -206,7 +206,7 @@ export function MapView() {
     group.clearLayers()
     if (!activeHive || !showMatingRadius) return
     L.circle([activeHive.lat, activeHive.lon], {
-      radius: MATING_RADIUS_KM * 1000,
+      radius: MATING_RADIUS_KILOMETRES * 1000,
       color: '#8b5cf6',
       weight: 1.5,
       opacity: 0.7,
@@ -215,7 +215,7 @@ export function MapView() {
       dashArray: '4 5',
     })
       .addTo(group)
-      .bindTooltip(`Queen mating range · ~${MATING_RADIUS_KM} km`)
+      .bindTooltip(`Queen mating range · ~${MATING_RADIUS_KILOMETRES} km`)
     map.flyTo([activeHive.lat, activeHive.lon], 12, { duration: 0.6 })
   }, [map, activeHive, showMatingRadius])
 
@@ -237,9 +237,9 @@ export function MapView() {
         fillOpacity: matches ? 0.9 : 0.15,
       })
       marker.bindPopup(
-        `<div class="pin-pop__title">${escapeHtml(f.name)}${surveyed ? ' <span class="pin-pop__badge">✓ DAERA surveyed</span>' : ''}</div>` +
+        `<div class="pin-pop__title">${escapeMarkup(f.name)}${surveyed ? ' <span class="pin-pop__badge">✓ DAERA surveyed</span>' : ''}</div>` +
           `<div class="pin-pop__meta">${meta.label} · ${meta.plant}</div>` +
-          `<div class="pin-pop__meta">${fmtDist(f.distance)} · ${f.dir}</div>` +
+          `<div class="pin-pop__meta">${formatDistance(f.distance)} · ${f.dir}</div>` +
           `<div class="pin-pop__meta"><span class="pin-dot" style="background:${pollenColour(meta.pollen)}"></span>${meta.pollen} pollen</div>`,
       )
       marker.addTo(group)
@@ -251,13 +251,13 @@ export function MapView() {
   // the layer off) to drop a hive instead.
   useEffect(() => {
     if (!map || !layers.current) return
-    const group = layers.current.dca
+    const group = layers.current.droneCongregationArea
     group.clearLayers()
-    if (!showDca || dcaCells.length === 0) return
-    const haveElev = dcaStatus === 'ready'
-    const maxScore = dcaCells.reduce((m, c) => Math.max(m, c.score), 0) || 1
-    const half = DEFAULT_STEP_M / 2
-    for (const cell of dcaCells) {
+    if (!showDroneCongregationArea || droneCongregationAreaCells.length === 0) return
+    const haveElev = droneCongregationAreaStatus === 'ready'
+    const maxScore = droneCongregationAreaCells.reduce((m, c) => Math.max(m, c.score), 0) || 1
+    const half = DEFAULT_STEP_METRES / 2
+    for (const cell of droneCongregationAreaCells) {
       const t = cell.score / maxScore
       if (t < 0.5) continue // hide the weak majority to keep the map readable
       const k = (t - 0.5) / 0.5
@@ -268,7 +268,7 @@ export function MapView() {
         .join('')
       L.rectangle([[sw.lat, sw.lon], [ne.lat, ne.lon]], {
         stroke: false,
-        fillColor: dcaColour(k),
+        fillColor: droneCongregationAreaColour(k),
         fillOpacity: 0.18 + 0.42 * k,
       })
         .bindPopup(
@@ -278,7 +278,7 @@ export function MapView() {
         )
         .addTo(group)
     }
-  }, [map, showDca, dcaCells, dcaStatus])
+  }, [map, showDroneCongregationArea, droneCongregationAreaCells, droneCongregationAreaStatus])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')

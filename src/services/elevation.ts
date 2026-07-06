@@ -4,7 +4,7 @@ import type { LatLon } from '../types'
 // Open-Meteo Elevation API (keyless, CORS `*`, same host as weather.ts). Backed by
 // ~90 m Copernicus/SRTM data. Accepts up to 100 comma-separated coordinates per call,
 // so we chunk larger grids and concatenate. Returns null if any chunk fails, letting
-// the DCA model fall back to land-cover-only scoring.
+// the drone congregation area model fall back to land-cover-only scoring.
 const MAX_PER_REQUEST = 100
 
 export async function fetchElevations(points: LatLon[]): Promise<number[] | null> {

@@ -36,7 +36,7 @@ Supporting background (reviews, beekeeping literature, Wikipedia): DCAs sit in *
 wind-sheltered** ground, beside **visual landmarks** (hedges, tree-lines, subtle ridges),
 avoid dense forest and urban clutter, and occur on **gentle slopes** (broadly < ~19%).
 
-## The model (`src/lib/dca.ts`)
+## The model (`src/lib/droneCongregationArea.ts`)
 
 A square grid of candidate points is laid out around the hive (default **2 km** radius,
 **200 m** spacing — drones average roughly 900 m to a DCA, and 200 m ≈ real DCA scale). Each
@@ -65,7 +65,7 @@ one extra network call.
 ### Graceful degradation
 If the elevation API is unavailable, the model drops the three topographic factors and scores
 on land cover alone (openness 0.65 / shelter 0.35, renormalised). The UI flags this as a
-"land-cover estimate only" (`dcaStatus === 'partial'`).
+"land-cover estimate only" (`droneCongregationAreaStatus === 'partial'`).
 
 ### Rendering
 The map (`src/map/MapView.tsx`) draws the stronger cells (top ~half by relative score) as

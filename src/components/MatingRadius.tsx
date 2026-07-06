@@ -1,4 +1,4 @@
-import { MATING_RADIUS_KM } from '../data/forage'
+import { MATING_RADIUS_KILOMETRES } from '../data/forage'
 import { useStore } from '../store/useStore'
 import { ToggleSwitch } from './ToggleSwitch'
 import styles from './controls.module.css'
@@ -18,7 +18,7 @@ export function MatingRadius() {
 
       {showMatingRadius && (
         <p className={`hint ${styles.blockHint}`}>
-          ~{MATING_RADIUS_KM} km — the practical reach to drone congregation areas. Queens usually mate
+          ~{MATING_RADIUS_KILOMETRES} km — the practical reach to drone congregation areas. Queens usually mate
           within 2 to 3 km (Jensen et al., 2005). The distance rings are hidden while this is on.
         </p>
       )}

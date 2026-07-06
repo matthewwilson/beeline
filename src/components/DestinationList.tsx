@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { FORAGE } from '../data/forage'
 import { POLLEN, pollenColour } from '../data/pollen'
-import { fmtDist } from '../lib/geo'
+import { formatDistance } from '../lib/geo'
 import { useScoredFeatures } from '../lib/useScoredFeatures'
 import { useStore } from '../store/useStore'
 import { useUiStore } from '../store/useUiStore'
@@ -48,7 +48,7 @@ export function DestinationList() {
                   <span className={styles.destPct}>{f.pct}%</span>
                 </span>
                 <span className={styles.destMeta}>
-                  {meta.label} · {fmtDist(f.distance)} · {f.dir} · {meta.pollen} pollen
+                  {meta.label} · {formatDistance(f.distance)} · {f.dir} · {meta.pollen} pollen
                   {tag && <span className={styles.destTag}> · {tag}</span>}
                 </span>
                 <span className={styles.fill}>

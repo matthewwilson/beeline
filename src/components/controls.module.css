@@ -63,7 +63,7 @@
   margin: 15px 0 13px;
 }
 
-/* Hint line under a toggle (used by BeeFlights / MatingRadius / DcaPanel). */
+/* Hint line under a toggle (used by BeeFlights, MatingRadius and DroneCongregationAreaPanel). */
 .blockHint {
   margin: 0 0 9px;
 }

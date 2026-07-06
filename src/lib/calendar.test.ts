@@ -3,7 +3,7 @@ import { forageCalendar } from './calendar'
 import type { Feature, ForageKey } from '../types'
 
 function feature(key: ForageKey, distance: number): Feature {
-  return { key, name: key, lat: 0, lon: 0, distance, dir: 'N', confidence: 'osm' }
+  return { key, name: key, lat: 0, lon: 0, distance, dir: 'N', confidence: 'openStreetMap' }
 }
 
 describe('forageCalendar', () => {

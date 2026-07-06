@@ -14,9 +14,9 @@ vi.mock('../services/habitats', () => ({ fetchHabitats: vi.fn(async () => [] as 
 vi.mock('../services/weather', () => ({
   fetchCurrentWeather: vi.fn(async () => null),
   fetchDailyForecast: vi.fn(async () => null),
-  fetchGddTotal: vi.fn(async () => null),
+  fetchGrowingDegreeDaysTotal: vi.fn(async () => null),
 }))
-vi.mock('../services/nbn', () => ({ fetchHornetCount: vi.fn(async () => null) }))
+vi.mock('../services/nationalBiodiversityNetwork', () => ({ fetchHornetCount: vi.fn(async () => null) }))
 vi.mock('../services/elevation', () => ({ fetchElevations: vi.fn(async () => null) }))
 vi.mock('../storage', () => ({
   loadHives: () => [],
@@ -48,7 +48,7 @@ describe('selectHive stale-request guard', () => {
   it('ignores a slow forage result for a hive that is no longer active', async () => {
     // overpassToFeatures returns a feature tagged with the hive it was scored against.
     vi.mocked(overpassToFeatures).mockImplementation((_els, hive) => [
-      { key: 'meadow', name: hive.lat === hiveB.lat ? 'B' : 'A', lat: hive.lat, lon: hive.lon, distance: 0, dir: 'N', confidence: 'osm' },
+      { key: 'meadow', name: hive.lat === hiveB.lat ? 'B' : 'A', lat: hive.lat, lon: hive.lon, distance: 0, dir: 'N', confidence: 'openStreetMap' },
     ])
 
     const first = deferred<[]>()

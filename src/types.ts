@@ -13,7 +13,7 @@ export type ForageKey =
 export type PollenKey = 'yellow' | 'orange' | 'cream' | 'grey' | 'green' | 'purple' | 'brown'
 export type PollenName = PollenKey | 'mixed'
 
-export type Confidence = 'observed' | 'surveyed' | 'osm'
+export type Confidence = 'observed' | 'surveyed' | 'openStreetMap'
 export type Season = 'auto' | 'spring' | 'summer' | 'late'
 
 export interface ForageMeta {

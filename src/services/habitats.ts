@@ -1,6 +1,6 @@
 import { FORAGE } from '../data/forage'
 import { makeFeature } from '../lib/features'
-import { offsetLatLon, polygonCentroid, type GeoJSONGeometry } from '../lib/geo'
+import { offsetLatLon, polygonCentroid, type FeatureGeometry } from '../lib/geo'
 import { fetchJson } from './http'
 import type { Feature, ForageKey, LatLon } from '../types'
 
@@ -16,11 +16,11 @@ const HABITAT_LAYERS: Array<{ name: string; key: ForageKey }> = [
 ]
 
 interface ArcGisFeature {
-  geometry?: GeoJSONGeometry
+  geometry?: FeatureGeometry
   properties?: { Hab_Type?: string; Area_Hectares?: number }
 }
 
-// Surveyed polygons supplement OSM where coverage exists (given a confidence bonus in scoring).
+// Surveyed polygons supplement OpenStreetMap where coverage exists (given a confidence bonus in scoring).
 export async function fetchHabitats(hive: LatLon): Promise<Feature[]> {
   const sw = offsetLatLon(hive, -5000, -5000)
   const ne = offsetLatLon(hive, 5000, 5000)

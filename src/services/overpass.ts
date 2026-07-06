@@ -1,4 +1,4 @@
-import { FORAGE, TAG_TO_KEY } from '../data/forage'
+import { FORAGE, TAG_TO_FORAGE_KEY } from '../data/forage'
 import { makeFeature } from '../lib/features'
 import type { Feature, LatLon } from '../types'
 
@@ -54,10 +54,10 @@ export function overpassToFeatures(elements: OverpassElement[], hive: LatLon): F
     const center = el.center
     const tags = el.tags ?? {}
     const rawVal = tags.landuse ?? tags.natural ?? tags.leisure ?? tags.barrier
-    const key = rawVal ? TAG_TO_KEY[rawVal] : undefined
+    const key = rawVal ? TAG_TO_FORAGE_KEY[rawVal] : undefined
     if (!key || !center || center.lat == null) continue
     const pt = { lat: center.lat, lon: center.lon }
-    out.push(makeFeature(key, tags.name ?? FORAGE[key].label, pt, hive, 'osm'))
+    out.push(makeFeature(key, tags.name ?? FORAGE[key].label, pt, hive, 'openStreetMap'))
   }
   return out
 }

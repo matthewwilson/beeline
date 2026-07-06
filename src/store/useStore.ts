@@ -1,13 +1,13 @@
 import { create } from 'zustand'
 import { clamp, dayOfYear } from '../lib/geo'
 import { makeFeature } from '../lib/features'
-import { buildGrid, scoreGrid, type DcaCell } from '../lib/dca'
-import { expectedGdd } from '../lib/scoring'
+import { buildGrid, scoreGrid, type DroneCongregationAreaCell } from '../lib/droneCongregationArea'
+import { expectedGrowingDegreeDays } from '../lib/scoring'
 import { fetchOverpass, overpassToFeatures } from '../services/overpass'
 import { fetchHabitats } from '../services/habitats'
 import { fetchElevations } from '../services/elevation'
-import { fetchCurrentWeather, fetchDailyForecast, fetchGddTotal } from '../services/weather'
-import { fetchHornetCount } from '../services/nbn'
+import { fetchCurrentWeather, fetchDailyForecast, fetchGrowingDegreeDaysTotal } from '../services/weather'
+import { fetchHornetCount } from '../services/nationalBiodiversityNetwork'
 import {
   loadFlowers,
   loadHives,
@@ -22,13 +22,13 @@ export type ForageStatus = 'idle' | 'scanning' | 'busy' | 'empty' | 'ready'
 
 // 'partial' = suitability shown but topography (elevation) was unavailable, so it rests
 // on land cover alone.
-export type DcaStatus = 'idle' | 'loading' | 'ready' | 'partial'
+export type DroneCongregationAreaStatus = 'idle' | 'loading' | 'ready' | 'partial'
 
 interface WeatherState {
   current: CurrentWeather | null
   forecast: DailyForecast[] | null
-  gddTotal: number | null
-  gddOffsetDays: number
+  growingDegreeDaysTotal: number | null
+  growingDegreeDaysOffsetDays: number
   loading: boolean
 }
 
@@ -41,8 +41,8 @@ interface BioState {
 const initialWeather: WeatherState = {
   current: null,
   forecast: null,
-  gddTotal: null,
-  gddOffsetDays: 0,
+  growingDegreeDaysTotal: null,
+  growingDegreeDaysOffsetDays: 0,
   loading: false,
 }
 const initialBio: BioState = { loading: false, hornetCount: null, failed: false }
@@ -77,9 +77,9 @@ interface BeeState {
   pendingHive: LatLon | null
   showBeeFlights: boolean
   showMatingRadius: boolean
-  showDca: boolean
-  dcaCells: DcaCell[]
-  dcaStatus: DcaStatus
+  showDroneCongregationArea: boolean
+  droneCongregationAreaCells: DroneCongregationAreaCell[]
+  droneCongregationAreaStatus: DroneCongregationAreaStatus
   status: string
 
   init: () => void
@@ -88,7 +88,7 @@ interface BeeState {
   togglePollen: (k: PollenKey) => void
   toggleBeeFlights: () => void
   toggleMatingRadius: () => void
-  toggleDca: () => void
+  toggleDroneCongregationArea: () => void
   selectHive: (hive: Hive) => void
   requestHiveAt: (lat: number, lon: number) => void
   saveHive: (name: string) => void
@@ -108,7 +108,7 @@ export const useStore = create<BeeState>((set, get) => {
     // Weather calls are independent, so start them together and commit each result as it lands.
     const forecastPromise = fetchDailyForecast(hive.lat, hive.lon)
     const currentPromise = fetchCurrentWeather(hive.lat, hive.lon)
-    const gddPromise = fetchGddTotal(hive.lat, hive.lon)
+    const growingDegreeDaysPromise = fetchGrowingDegreeDaysTotal(hive.lat, hive.lon)
 
     void forecastPromise.then((forecast) => {
       if (token !== selectionToken || !forecast) return
@@ -119,11 +119,11 @@ export const useStore = create<BeeState>((set, get) => {
     if (token !== selectionToken) return
     set((s) => ({ weather: { ...s.weather, current, loading: false } }))
 
-    const gddTotal = await gddPromise
-    if (token !== selectionToken || gddTotal == null) return
+    const growingDegreeDaysTotal = await growingDegreeDaysPromise
+    if (token !== selectionToken || growingDegreeDaysTotal == null) return
     const perDay = Math.max(1, (current ? current.temperature_2m : 12) - 5)
-    const gddOffsetDays = clamp(Math.round((gddTotal - expectedGdd(dayOfYear())) / perDay), -25, 25)
-    set((s) => ({ weather: { ...s.weather, gddTotal, gddOffsetDays } }))
+    const growingDegreeDaysOffsetDays = clamp(Math.round((growingDegreeDaysTotal - expectedGrowingDegreeDays(dayOfYear())) / perDay), -25, 25)
+    set((s) => ({ weather: { ...s.weather, growingDegreeDaysTotal, growingDegreeDaysOffsetDays } }))
   }
 
   async function loadBiosecurity(hive: Hive, token: number) {
@@ -138,8 +138,8 @@ export const useStore = create<BeeState>((set, get) => {
       forageStatus: 'scanning',
       landFeatures: [],
       features: [],
-      dcaCells: [],
-      dcaStatus: get().showDca ? 'loading' : 'idle',
+      droneCongregationAreaCells: [],
+      droneCongregationAreaStatus: get().showDroneCongregationArea ? 'loading' : 'idle',
       status: 'Reading the landscape around this hive…',
     })
     const [elements, habitats] = await Promise.all([
@@ -148,8 +148,8 @@ export const useStore = create<BeeState>((set, get) => {
     ])
     if (token !== selectionToken) return
 
-    const osm = elements ? overpassToFeatures(elements, hive) : []
-    const land = [...osm, ...habitats].filter((f) => f.distance <= 5000)
+    const openStreetMap = elements ? overpassToFeatures(elements, hive) : []
+    const land = [...openStreetMap, ...habitats].filter((f) => f.distance <= 5000)
     const features = mergeFeatures(land, get().flowers, hive)
 
     let forageStatus: ForageStatus = 'ready'
@@ -158,19 +158,19 @@ export const useStore = create<BeeState>((set, get) => {
 
     set({ landFeatures: land, features, forageStatus, status: '' })
 
-    if (get().showDca) void loadDca(hive, token)
+    if (get().showDroneCongregationArea) void loadDroneCongregationArea(hive, token)
   }
 
   // Scores a grid of candidate spots around the hive for drone-congregation-area
-  // suitability (see lib/dca.ts). Reuses the land features already fetched by loadForage;
+  // suitability (see lib/droneCongregationArea.ts). Reuses the land features already fetched by loadForage;
   // elevation is fetched here and the model degrades to land-cover-only if it fails.
-  async function loadDca(hive: Hive, token: number) {
-    set({ dcaStatus: 'loading' })
+  async function loadDroneCongregationArea(hive: Hive, token: number) {
+    set({ droneCongregationAreaStatus: 'loading' })
     const grid = buildGrid(hive)
     const elevations = await fetchElevations(grid.points)
     if (token !== selectionToken) return
     const cells = scoreGrid(grid, elevations, get().landFeatures)
-    set({ dcaCells: cells, dcaStatus: elevations ? 'ready' : 'partial' })
+    set({ droneCongregationAreaCells: cells, droneCongregationAreaStatus: elevations ? 'ready' : 'partial' })
   }
 
   return {
@@ -190,9 +190,9 @@ export const useStore = create<BeeState>((set, get) => {
     pendingHive: null,
     showBeeFlights: false,
     showMatingRadius: false,
-    showDca: false,
-    dcaCells: [],
-    dcaStatus: 'idle',
+    showDroneCongregationArea: false,
+    droneCongregationAreaCells: [],
+    droneCongregationAreaStatus: 'idle',
     status: '',
 
     init: () => set({ hives: loadHives(), flowers: loadFlowers(), myHiveIds: loadMyHiveIds() }),
@@ -207,12 +207,12 @@ export const useStore = create<BeeState>((set, get) => {
 
     toggleMatingRadius: () => set((s) => ({ showMatingRadius: !s.showMatingRadius })),
 
-    toggleDca: () => {
-      const on = !get().showDca
-      set({ showDca: on })
+    toggleDroneCongregationArea: () => {
+      const on = !get().showDroneCongregationArea
+      set({ showDroneCongregationArea: on })
       const hive = get().activeHive
-      if (on && hive) void loadDca(hive, selectionToken)
-      else if (!on) set({ dcaCells: [], dcaStatus: 'idle' })
+      if (on && hive) void loadDroneCongregationArea(hive, selectionToken)
+      else if (!on) set({ droneCongregationAreaCells: [], droneCongregationAreaStatus: 'idle' })
     },
 
     selectHive: (hive) => {
@@ -259,8 +259,8 @@ export const useStore = create<BeeState>((set, get) => {
           activeHive: null,
           features: [],
           landFeatures: [],
-          dcaCells: [],
-          dcaStatus: 'idle',
+          droneCongregationAreaCells: [],
+          droneCongregationAreaStatus: 'idle',
           forageStatus: 'idle',
           weather: initialWeather,
           biosecurity: initialBio,

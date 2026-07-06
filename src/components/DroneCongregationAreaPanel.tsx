@@ -2,7 +2,7 @@ import { useStore } from '../store/useStore'
 import { ToggleSwitch } from './ToggleSwitch'
 import styles from './controls.module.css'
 
-// Colour stops mirroring the map's warm suitability ramp (see MapView `dcaColour`).
+// Colour stops mirroring the map's warm suitability ramp (see MapView `droneCongregationAreaColour`).
 const RAMP = [
   { colour: 'hsl(45, 85%, 56%)', label: 'Less likely' },
   { colour: 'hsl(28, 85%, 51%)', label: 'Possible' },
@@ -10,35 +10,35 @@ const RAMP = [
 ]
 
 /**
- * Toggle + legend for the drone-congregation-area suitability layer. A DCA is where male
+ * Toggle + legend for the drone-congregation-area suitability layer. This is where male
  * bees gather to mate; the layer scores the surrounding landscape for the features the
- * research links to DCAs. It is a prediction, not a detection — see references/dca-model.md.
+ * research links to those areas. It is a prediction, not a detection — see references/dca-model.md.
  */
-export function DcaPanel() {
+export function DroneCongregationAreaPanel() {
   const activeHive = useStore((s) => s.activeHive)
-  const showDca = useStore((s) => s.showDca)
-  const toggleDca = useStore((s) => s.toggleDca)
-  const dcaStatus = useStore((s) => s.dcaStatus)
+  const showDroneCongregationArea = useStore((s) => s.showDroneCongregationArea)
+  const toggleDroneCongregationArea = useStore((s) => s.toggleDroneCongregationArea)
+  const droneCongregationAreaStatus = useStore((s) => s.droneCongregationAreaStatus)
 
   return (
     <>
-      <ToggleSwitch label="Show drone congregation areas" checked={showDca} onToggle={toggleDca} />
+      <ToggleSwitch label="Show drone congregation areas" checked={showDroneCongregationArea} onToggle={toggleDroneCongregationArea} />
 
-      {showDca && !activeHive && (
+      {showDroneCongregationArea && !activeHive && (
         <p className={`hint ${styles.blockHint}`}>Select a hive to map likely drone-gathering spots.</p>
       )}
 
-      {showDca && activeHive && dcaStatus === 'loading' && (
+      {showDroneCongregationArea && activeHive && droneCongregationAreaStatus === 'loading' && (
         <p className={`hint ${styles.blockHint}`}>Modelling the terrain around this hive…</p>
       )}
 
-      {showDca && dcaStatus === 'partial' && (
+      {showDroneCongregationArea && droneCongregationAreaStatus === 'partial' && (
         <p className={`hint ${styles.blockHint}`}>
           Elevation data unavailable — showing a land-cover estimate only.
         </p>
       )}
 
-      {showDca && (
+      {showDroneCongregationArea && (
         <>
           <ul className={styles.bandLegend}>
             {RAMP.map((r) => (

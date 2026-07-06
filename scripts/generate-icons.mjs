@@ -5,40 +5,40 @@ import pngToIco from 'png-to-ico'
 import sharp from 'sharp'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const SRC = join(root, 'src/assets/icon.png')
-const OUT = join(root, 'public/icons')
+const sourceIconPath = join(root, 'src/assets/icon.png')
+const outputIconsPath = join(root, 'public/icons')
 
 // Dark warm tone sampled from the source artwork's corners, so the maskable safe-zone
 // padding blends seamlessly with the icon's own vignette.
-const PAD = '#0e0b07'
+const paddingColour = '#0e0b07'
 
-await mkdir(OUT, { recursive: true })
+await mkdir(outputIconsPath, { recursive: true })
 
 for (const size of [192, 512]) {
-  await sharp(SRC).resize(size, size, { fit: 'cover' }).png().toFile(join(OUT, `pwa-${size}.png`))
+  await sharp(sourceIconPath).resize(size, size, { fit: 'cover' }).png().toFile(join(outputIconsPath, `pwa-${size}.png`))
 }
 
 // iOS ignores transparency, so flatten onto the warm dark tone.
-await sharp(SRC)
+await sharp(sourceIconPath)
   .resize(180, 180, { fit: 'cover' })
-  .flatten({ background: PAD })
+  .flatten({ background: paddingColour })
   .png()
-  .toFile(join(OUT, 'apple-touch-icon.png'))
+  .toFile(join(outputIconsPath, 'apple-touch-icon.png'))
 
 // Maskable: scale the artwork into the inner ~82% safe zone on an opaque background.
 const inner = Math.round(512 * 0.82)
-const scaled = await sharp(SRC)
+const scaled = await sharp(sourceIconPath)
   .resize(inner, inner, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
   .png()
   .toBuffer()
-await sharp({ create: { width: 512, height: 512, channels: 4, background: PAD } })
+await sharp({ create: { width: 512, height: 512, channels: 4, background: paddingColour } })
   .composite([{ input: scaled, gravity: 'center' }])
   .png()
-  .toFile(join(OUT, 'maskable-512.png'))
+  .toFile(join(outputIconsPath, 'maskable-512.png'))
 
 const icoBuffers = await Promise.all(
-  [16, 32, 48].map((s) => sharp(SRC).resize(s, s, { fit: 'cover' }).png().toBuffer()),
+  [16, 32, 48].map((size) => sharp(sourceIconPath).resize(size, size, { fit: 'cover' }).png().toBuffer()),
 )
-await writeFile(join(OUT, 'favicon.ico'), await pngToIco(icoBuffers))
+await writeFile(join(outputIconsPath, 'favicon.ico'), await pngToIco(icoBuffers))
 
 console.log('Generated PWA icons in public/icons/')

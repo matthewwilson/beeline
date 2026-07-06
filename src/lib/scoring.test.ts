@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { areaFactor, bloomFactorAtDoy, expectedGdd, scoreOf, seasonFactor } from './scoring'
+import { areaFactor, bloomFactorAtDoy, expectedGrowingDegreeDays, scoreOf, seasonFactor } from './scoring'
 import type { Feature, ForageKey } from '../types'
 
 function feature(key: ForageKey, distance: number, confidence: Feature['confidence']): Feature {
@@ -28,25 +28,25 @@ describe('seasonFactor', () => {
 })
 
 describe('scoreOf', () => {
-  it('ranks confidence observed > surveyed > osm by the exact multipliers', () => {
-    const ctx = { season: 'summer' as const, gddOffsetDays: 0, selectedPollen: null }
-    const osm = scoreOf(feature('meadow', 500, 'osm'), ctx)
+  it('ranks confidence observed > surveyed > OpenStreetMap by the exact multipliers', () => {
+    const ctx = { season: 'summer' as const, growingDegreeDaysOffsetDays: 0, selectedPollen: null }
+    const openStreetMap = scoreOf(feature('meadow', 500, 'openStreetMap'), ctx)
     const surveyed = scoreOf(feature('meadow', 500, 'surveyed'), ctx)
     const observed = scoreOf(feature('meadow', 500, 'observed'), ctx)
     expect(observed).toBeGreaterThan(surveyed)
-    expect(surveyed).toBeGreaterThan(osm)
-    expect(surveyed / osm).toBeCloseTo(1.25, 6)
-    expect(observed / osm).toBeCloseTo(1.5, 6)
+    expect(surveyed).toBeGreaterThan(openStreetMap)
+    expect(surveyed / openStreetMap).toBeCloseTo(1.25, 6)
+    expect(observed / openStreetMap).toBeCloseTo(1.5, 6)
   })
   it('applies the pollen-mismatch penalty', () => {
-    const base = { season: 'summer' as const, gddOffsetDays: 0 }
-    const f = feature('farmland', 500, 'osm')
+    const base = { season: 'summer' as const, growingDegreeDaysOffsetDays: 0 }
+    const f = feature('farmland', 500, 'openStreetMap')
     const unfiltered = scoreOf(f, { ...base, selectedPollen: null })
     const mismatched = scoreOf(f, { ...base, selectedPollen: 'grey' })
     expect(mismatched / unfiltered).toBeCloseTo(0.15, 6)
   })
   it('gives a larger habitat patch a modest lift, leaving area-less features unchanged', () => {
-    const ctx = { season: 'summer' as const, gddOffsetDays: 0, selectedPollen: null }
+    const ctx = { season: 'summer' as const, growingDegreeDaysOffsetDays: 0, selectedPollen: null }
     const noArea = scoreOf(feature('heath', 500, 'surveyed'), ctx)
     const big = scoreOf({ ...feature('heath', 500, 'surveyed'), area: 50 }, ctx)
     expect(big).toBeGreaterThan(noArea)
@@ -64,10 +64,10 @@ describe('areaFactor', () => {
   })
 })
 
-describe('expectedGdd', () => {
+describe('expectedGrowingDegreeDays', () => {
   it('returns baseline endpoints and interpolates between them', () => {
-    expect(expectedGdd(1)).toBe(2)
-    expect(expectedGdd(365)).toBe(1670)
-    expect(expectedGdd(45)).toBeCloseTo(25, 6)
+    expect(expectedGrowingDegreeDays(1)).toBe(2)
+    expect(expectedGrowingDegreeDays(365)).toBe(1670)
+    expect(expectedGrowingDegreeDays(45)).toBeCloseTo(25, 6)
   })
 })

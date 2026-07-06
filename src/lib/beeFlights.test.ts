@@ -7,7 +7,7 @@ const HIVE = { lat: 54.6, lon: -5.9 }
 
 function scored(distance: number, score: number): ScoredFeature {
   const dest = { lat: HIVE.lat + distance / 111320, lon: HIVE.lon }
-  return { key: 'meadow', name: 'meadow', dir: 'N', confidence: 'osm', score, ...dest, distance }
+  return { key: 'meadow', name: 'meadow', dir: 'N', confidence: 'openStreetMap', score, ...dest, distance }
 }
 
 describe('candidatePool', () => {

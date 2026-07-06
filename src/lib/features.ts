@@ -3,7 +3,7 @@ import type { Confidence, Feature, ForageKey, LatLon } from '../types'
 
 /**
  * Build a forage Feature at a point, filling in its distance and compass bearing from the
- * hive. Shared by the OSM, habitat and observed-flower sources so the distance/dir mapping
+ * hive. Shared by the OpenStreetMap, habitat and observed-flower sources so the distance/dir mapping
  * lives in one place. Pass `area` only for surveyed habitat polygons.
  */
 export function makeFeature(

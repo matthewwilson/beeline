@@ -1,4 +1,4 @@
-import { CONFIDENCE_MULT, FORAGE } from '../data/forage'
+import { CONFIDENCE_WEIGHTS, FORAGE } from '../data/forage'
 import { MONTHS } from '../data/bloom'
 import { GAP_PLANTS } from '../data/plants'
 import { bloomFactorAtDoy } from './scoring'
@@ -34,7 +34,7 @@ export function forageCalendar(
   if (!features.length) return null
 
   const weights = features.map(
-    (f) => FORAGE[f.key].base * Math.exp(-f.distance / 1500) * (CONFIDENCE_MULT[f.confidence] ?? 1),
+    (f) => FORAGE[f.key].base * Math.exp(-f.distance / 1500) * (CONFIDENCE_WEIGHTS[f.confidence] ?? 1),
   )
   const monthly = MONTHS.map((_, m) => {
     const midDoy = Math.round((m + 0.5) * 30.4)

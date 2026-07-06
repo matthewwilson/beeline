@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { buildGrid, cellFactorRows, scoreGrid, slopeAspect } from './dca'
-import type { DcaCell } from './dca'
+import { buildGrid, cellFactorRows, scoreGrid, slopeAspect } from './droneCongregationArea'
+import type { DroneCongregationAreaCell } from './droneCongregationArea'
 import { distanceMetres } from './geo'
 import type { Feature, ForageKey, LatLon } from '../types'
 
 const HIVE: LatLon = { lat: 54.6, lon: -5.9 }
 
 function feat(key: ForageKey, at: LatLon): Feature {
-  return { key, name: key, lat: at.lat, lon: at.lon, distance: 0, dir: 'N', confidence: 'osm' }
+  return { key, name: key, lat: at.lat, lon: at.lon, distance: 0, dir: 'N', confidence: 'openStreetMap' }
 }
 
 describe('buildGrid', () => {
@@ -107,7 +107,7 @@ describe('scoreGrid', () => {
 })
 
 describe('cellFactorRows', () => {
-  const cell: DcaCell = {
+  const cell: DroneCongregationAreaCell = {
     lat: 54.6,
     lon: -5.9,
     score: 0.7,

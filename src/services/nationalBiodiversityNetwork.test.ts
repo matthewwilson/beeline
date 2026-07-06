@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchHornetCount } from './nbn'
+import { fetchHornetCount } from './nationalBiodiversityNetwork'
 
 afterEach(() => vi.unstubAllGlobals())
 
