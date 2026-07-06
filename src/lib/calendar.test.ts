@@ -51,4 +51,15 @@ describe('forageCalendar', () => {
     // Every suggestion should be a plant that flowers in the gap month (1-indexed).
     expect(result?.suggestions.length).toBeGreaterThan(0)
   })
+
+  it('detects the later autumn dearth, distinct from the June gap, with ivy-type suggestions', () => {
+    const result = forageCalendar([feature('orchard', 100), feature('heath', 100)], 6)
+    expect(result).not.toBeNull()
+    if (!result) return
+    expect(result.isAutumnGap).toBe(true)
+    expect(result.autumnGapMonth).not.toBe(result.gapMonth)
+    expect(result.autumnGapMonth).toBeGreaterThanOrEqual(7) // Aug–Oct
+    expect(result.autumnGapMonth).toBeLessThanOrEqual(9)
+    expect(result.autumnSuggestions).toContain('Ivy')
+  })
 })

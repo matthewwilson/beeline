@@ -52,8 +52,18 @@ bramble/gorse/ivy→scrub; heather→heath; white clover/dandelion/knapweed→me
 sycamore→wood; oilseed rape/field beans→farmland; apple→orchard; phacelia/borage/comfrey/
 lavender/rose/foxglove/peony→garden. Free-text "other" → `garden` (a moderate default).
 
+## Habitat area (`areaFactor`)
+DAERA/NIEA priority-habitat polygons carry a mapped area (hectares) that a point source (an OSM
+tag or an observed flower) does not. A larger patch plausibly holds more forage, so the score
+gets a gentle, saturating lift: `areaFactor = clamp(1 + 0.12 × log10(1 + hectares), 1, 1.4)`.
+Area-less features (undefined or 0) score at ×1, so only surveyed habitats are affected. The log
+and the ×1.4 cap keep it a tie-breaker: it nudges the ranking of comparable habitats without ever
+outweighing distance decay, bloom timing or the confidence tier.
+
 ## Gap-filling plants (`GAP_PLANTS`)
 Suggestions for filling a detected forage gap are drawn from the All-Ireland Pollinator Plan and
 RHS Plants for Pollinators, keyed by approximate flowering month. The classic UK/Ireland "June
 gap" (between spring blossom/oilseed rape and mid-summer bramble/clover) is filled by e.g.
-phacelia, borage, white clover, comfrey, cotoneaster, field beans, lime and foxglove.
+phacelia, borage, white clover, comfrey, cotoneaster, field beans, lime and foxglove. The later
+autumn dearth (after the main summer flow, before ivy) is filled by e.g. ivy, Michaelmas daisy
+and sedum.

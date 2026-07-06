@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bloomFactorAtDoy, expectedGdd, scoreOf, seasonFactor } from './scoring'
+import { areaFactor, bloomFactorAtDoy, expectedGdd, scoreOf, seasonFactor } from './scoring'
 import type { Feature, ForageKey } from '../types'
 
 function feature(key: ForageKey, distance: number, confidence: Feature['confidence']): Feature {
@@ -44,6 +44,23 @@ describe('scoreOf', () => {
     const unfiltered = scoreOf(f, { ...base, selectedPollen: null })
     const mismatched = scoreOf(f, { ...base, selectedPollen: 'grey' })
     expect(mismatched / unfiltered).toBeCloseTo(0.15, 6)
+  })
+  it('gives a larger habitat patch a modest lift, leaving area-less features unchanged', () => {
+    const ctx = { season: 'summer' as const, gddOffsetDays: 0, selectedPollen: null }
+    const noArea = scoreOf(feature('heath', 500, 'surveyed'), ctx)
+    const big = scoreOf({ ...feature('heath', 500, 'surveyed'), area: 50 }, ctx)
+    expect(big).toBeGreaterThan(noArea)
+    expect(big / noArea).toBeCloseTo(areaFactor(50), 6)
+  })
+})
+
+describe('areaFactor', () => {
+  it('is 1 for missing, zero or negative area and grows with a hard ×1.4 cap', () => {
+    expect(areaFactor(undefined)).toBe(1)
+    expect(areaFactor(0)).toBe(1)
+    expect(areaFactor(-5)).toBe(1)
+    expect(areaFactor(10)).toBeGreaterThan(1)
+    expect(areaFactor(1_000_000)).toBeLessThanOrEqual(1.4)
   })
 })
 

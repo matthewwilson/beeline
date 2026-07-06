@@ -102,6 +102,38 @@
   line-height: 1.45;
 }
 
+.forecast {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 8px;
+  border-top: 1px dashed var(--comb-line);
+  padding-top: 8px;
+}
+.forecastDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 0;
+}
+.forecastLab {
+  font-size: 10px;
+  color: var(--wax-faint);
+  font-weight: 700;
+}
+.forecastDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
+}
+.forecastTemp {
+  font-size: 11px;
+  color: var(--wax-dim);
+  font-variant-numeric: tabular-nums;
+}
+
 .swatches {
   display: flex;
   flex-wrap: wrap;

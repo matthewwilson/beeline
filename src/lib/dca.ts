@@ -129,6 +129,30 @@ function shelterAt(cell: LatLon, land: Feature[]): number {
   return prox(dLandmark, LANDMARK_RADIUS_M)
 }
 
+export interface FactorRow {
+  label: string
+  pct: number
+}
+
+// Human-readable breakdown of why a cell scored as it did, ordered by the model's weighting.
+// Without elevation (partial mode) the south/low/slope factors are neutral placeholders, so we
+// drop them and show only the land-cover factors that were actually measured.
+export function cellFactorRows(cell: DcaCell, haveElev: boolean): FactorRow[] {
+  const { openness, shelter, low, south, slope } = cell.factors
+  const rows: FactorRow[] = [
+    { label: 'Open ground', pct: Math.round(openness * 100) },
+    { label: 'Shelter / landmark', pct: Math.round(shelter * 100) },
+  ]
+  if (haveElev) {
+    rows.push(
+      { label: 'South-facing', pct: Math.round(south * 100) },
+      { label: 'Low-lying', pct: Math.round(low * 100) },
+      { label: 'Gentle slope', pct: Math.round(slope * 100) },
+    )
+  }
+  return rows
+}
+
 // Score every in-range grid cell. `elevations` aligns 1:1 with grid.points; pass null when
 // the elevation API was unavailable to score on land cover alone.
 export function scoreGrid(

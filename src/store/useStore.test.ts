@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchOverpass, overpassToFeatures } from '../services/overpass'
+import { fetchDailyForecast } from '../services/weather'
 import { useStore } from './useStore'
-import type { Feature, Hive } from '../types'
+import type { DailyForecast, Feature, Hive } from '../types'
 
 // The store orchestrates the service layer; mock it so the tests drive resolution timing
 // and stay offline.
@@ -12,6 +13,7 @@ vi.mock('../services/overpass', () => ({
 vi.mock('../services/habitats', () => ({ fetchHabitats: vi.fn(async () => [] as Feature[]) }))
 vi.mock('../services/weather', () => ({
   fetchCurrentWeather: vi.fn(async () => null),
+  fetchDailyForecast: vi.fn(async () => null),
   fetchGddTotal: vi.fn(async () => null),
 }))
 vi.mock('../services/nbn', () => ({ fetchHornetCount: vi.fn(async () => null) }))
@@ -66,6 +68,33 @@ describe('selectHive stale-request guard', () => {
     expect(useStore.getState().activeHive).toBe(hiveB)
     expect(useStore.getState().features).toHaveLength(1)
     expect(useStore.getState().features[0].name).toBe('B')
+  })
+})
+
+describe('weather forecast', () => {
+  it('stores a fresh 7-day forecast for the active hive', async () => {
+    const forecast: DailyForecast[] = [{ date: '2026-07-06', tempMax: 18, windMax: 10, precip: 0 }]
+    vi.mocked(fetchDailyForecast).mockResolvedValueOnce(forecast)
+
+    useStore.getState().selectHive(hiveA)
+    await flush()
+
+    expect(useStore.getState().weather.forecast).toEqual(forecast)
+  })
+
+  it('ignores a slow forecast for a hive that is no longer active', async () => {
+    const slow = deferred<DailyForecast[]>()
+    vi.mocked(fetchDailyForecast).mockReturnValueOnce(slow.promise).mockResolvedValueOnce([])
+
+    useStore.getState().selectHive(hiveA)
+    useStore.getState().selectHive(hiveB)
+    await flush()
+
+    // Hive A's forecast resolves late; it must not land on hive B.
+    slow.resolve([{ date: '2026-07-06', tempMax: 18, windMax: 10, precip: 0 }])
+    await flush()
+
+    expect(useStore.getState().weather.forecast).toEqual([])
   })
 })
 

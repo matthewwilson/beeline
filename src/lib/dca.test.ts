@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { buildGrid, scoreGrid, slopeAspect } from './dca'
+import { buildGrid, cellFactorRows, scoreGrid, slopeAspect } from './dca'
+import type { DcaCell } from './dca'
 import { distanceMetres } from './geo'
 import type { Feature, ForageKey, LatLon } from '../types'
 
@@ -102,5 +103,29 @@ describe('scoreGrid', () => {
       expect(cell.score).toBeGreaterThanOrEqual(0)
       expect(cell.score).toBeLessThanOrEqual(1)
     }
+  })
+})
+
+describe('cellFactorRows', () => {
+  const cell: DcaCell = {
+    lat: 54.6,
+    lon: -5.9,
+    score: 0.7,
+    factors: { openness: 0.8, shelter: 0.5, low: 0.6, south: 0.9, slope: 0.4 },
+  }
+
+  it('lists all five factors as 0–100 percentages when elevation is available', () => {
+    const rows = cellFactorRows(cell, true)
+    expect(rows).toHaveLength(5)
+    expect(rows[0]).toEqual({ label: 'Open ground', pct: 80 })
+    for (const r of rows) {
+      expect(r.pct).toBeGreaterThanOrEqual(0)
+      expect(r.pct).toBeLessThanOrEqual(100)
+    }
+  })
+
+  it('shows only the measured land-cover factors in partial mode', () => {
+    const rows = cellFactorRows(cell, false)
+    expect(rows.map((r) => r.label)).toEqual(['Open ground', 'Shelter / landmark'])
   })
 })

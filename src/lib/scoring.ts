@@ -1,8 +1,17 @@
 import { CONFIDENCE_MULT, FORAGE } from '../data/forage'
 import { BLOOM, GDD_BASELINE, SEASON } from '../data/bloom'
 import { POLLEN } from '../data/pollen'
-import { dayOfYear } from './geo'
+import { clamp, dayOfYear } from './geo'
 import type { Feature, ForageKey, PollenKey, Season } from '../types'
+
+// A larger habitat patch offers more forage, but with sharply diminishing returns — a
+// saturating log bonus capped at ×1.4 so patch size nudges the ranking without ever
+// overriding distance, bloom or confidence. Only surveyed polygons carry an area; OSM and
+// observed features (area undefined/0) score at ×1.
+export function areaFactor(area?: number | null): number {
+  if (!area || area <= 0) return 1
+  return clamp(1 + 0.12 * Math.log10(1 + area), 1, 1.4)
+}
 
 export function bloomFactorAtDoy(key: ForageKey, doy: number): number {
   const w = BLOOM[key]
@@ -33,7 +42,7 @@ export function scoreOf(f: Feature, ctx: ScoreContext): number {
   const meta = FORAGE[f.key]
   const decay = Math.exp(-f.distance / 1500)
   const conf = CONFIDENCE_MULT[f.confidence] ?? 1
-  let score = meta.base * seasonFactor(f.key, ctx.season, ctx.gddOffsetDays) * decay * conf
+  let score = meta.base * seasonFactor(f.key, ctx.season, ctx.gddOffsetDays) * decay * conf * areaFactor(f.area)
   if (ctx.selectedPollen && !POLLEN[ctx.selectedPollen].keys.includes(f.key)) score *= 0.15
   return score
 }

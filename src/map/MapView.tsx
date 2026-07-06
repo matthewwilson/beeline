@@ -4,7 +4,7 @@ import { FORAGE, MATING_RADIUS_KM, MAX_MARKERS, RING_KM } from '../data/forage'
 import { POLLEN, pollenColour } from '../data/pollen'
 import { createBees, stepBee } from '../lib/beeFlights'
 import type { Bee } from '../lib/beeFlights'
-import { DEFAULT_STEP_M } from '../lib/dca'
+import { cellFactorRows, DEFAULT_STEP_M } from '../lib/dca'
 import { escapeHtml, fmtDist, offsetLatLon } from '../lib/geo'
 import { useScoredFeatures } from '../lib/useScoredFeatures'
 import { useStore } from '../store/useStore'
@@ -97,6 +97,7 @@ export function MapView() {
   const showMatingRadius = useStore((s) => s.showMatingRadius)
   const showDca = useStore((s) => s.showDca)
   const dcaCells = useStore((s) => s.dcaCells)
+  const dcaStatus = useStore((s) => s.dcaStatus)
   const flyRequest = useUiStore((s) => s.flyRequest)
   const scored = useScoredFeatures()
 
@@ -245,13 +246,15 @@ export function MapView() {
     }
   }, [map, scored, selectedPollen])
 
-  // Drone-congregation-area suitability grid: draw the stronger cells as graded, warm,
-  // non-interactive squares (clicks pass through so you can still drop a hive under them).
+  // Drone-congregation-area suitability grid: draw the stronger cells as graded, warm squares.
+  // Each carries a popup breaking down why it scored as it did; click an empty area (or toggle
+  // the layer off) to drop a hive instead.
   useEffect(() => {
     if (!map || !layers.current) return
     const group = layers.current.dca
     group.clearLayers()
     if (!showDca || dcaCells.length === 0) return
+    const haveElev = dcaStatus === 'ready'
     const maxScore = dcaCells.reduce((m, c) => Math.max(m, c.score), 0) || 1
     const half = DEFAULT_STEP_M / 2
     for (const cell of dcaCells) {
@@ -260,14 +263,22 @@ export function MapView() {
       const k = (t - 0.5) / 0.5
       const sw = offsetLatLon(cell, -half, -half)
       const ne = offsetLatLon(cell, half, half)
+      const rows = cellFactorRows(cell, haveElev)
+        .map((r) => `<div class="pin-pop__meta">${r.label} · ${r.pct}%</div>`)
+        .join('')
       L.rectangle([[sw.lat, sw.lon], [ne.lat, ne.lon]], {
         stroke: false,
         fillColor: dcaColour(k),
         fillOpacity: 0.18 + 0.42 * k,
-        interactive: false,
-      }).addTo(group)
+      })
+        .bindPopup(
+          `<div class="pin-pop__title">🐝 Drone gathering · ${Math.round(t * 100)}% suitable</div>` +
+            rows +
+            (haveElev ? '' : '<div class="pin-pop__meta">No elevation data — land cover only.</div>'),
+        )
+        .addTo(group)
     }
-  }, [map, showDca, dcaCells])
+  }, [map, showDca, dcaCells, dcaStatus])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')

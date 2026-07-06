@@ -9,7 +9,8 @@ export function ForageCalendar() {
   const cal = useMemo(() => forageCalendar(features), [features])
   if (!cal) return null
 
-  const { monthly, peak, nowMonth, gapMonth, isGap, isJune, suggestions } = cal
+  const { monthly, peak, nowMonth, gapMonth, isGap, isJune, suggestions, autumnGapMonth, isAutumnGap, autumnSuggestions } =
+    cal
 
   return (
     <details className={styles.block} open>
@@ -17,7 +18,8 @@ export function ForageCalendar() {
       <div className={styles.cal}>
         {monthly.map((v, m) => {
           const height = Math.round((100 * v) / peak)
-          const cls = [styles.mo, m === gapMonth && isGap ? styles.moGap : '', m === nowMonth ? styles.moNow : '']
+          const gap = (m === gapMonth && isGap) || (m === autumnGapMonth && isAutumnGap)
+          const cls = [styles.mo, gap ? styles.moGap : '', m === nowMonth ? styles.moNow : '']
             .filter(Boolean)
             .join(' ')
           return (
@@ -36,6 +38,12 @@ export function ForageCalendar() {
         </p>
       ) : (
         <p className={styles.callout}>Fairly steady forage through the season near this hive — no severe gap.</p>
+      )}
+      {isAutumnGap && (
+        <p className={styles.callout}>
+          Forage tails off by <b>{MONTHS[autumnGapMonth]}</b> — the autumn dearth.
+          {autumnSuggestions.length > 0 ? ` Plant to fill it: ${autumnSuggestions.join(', ')}.` : ''}
+        </p>
       )}
       <p className={`hint ${styles.calHint}`}>
         Relative nectar and pollen by month, from nearby sources and their bloom windows.
