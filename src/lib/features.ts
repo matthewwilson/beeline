@@ -1,5 +1,13 @@
-import { bearing, distanceMetres } from './geo'
-import type { Confidence, Feature, ForageKey, LatLon } from '../types'
+import { bearing, distanceMetres, nearestPointOnGeometry } from './geo'
+import type { BloomWindow, Confidence, Feature, FeatureGeometry, ForageKey, LatLon } from '../types'
+
+export interface FeatureOptions {
+  area?: number | null
+  geometry?: FeatureGeometry
+  bloom?: BloomWindow
+  offSeasonFloor?: number
+  scoreMultiplier?: number
+}
 
 /**
  * Build a forage Feature at a point, filling in its distance and compass bearing from the
@@ -12,17 +20,23 @@ export function makeFeature(
   pt: LatLon,
   hive: LatLon,
   confidence: Confidence,
-  area?: number | null,
+  options: FeatureOptions | number | null = {},
 ): Feature {
+  const opts: FeatureOptions = typeof options === 'number' || options === null ? { area: options } : options
+  const distancePoint = nearestPointOnGeometry(hive, opts.geometry) ?? pt
   const feature: Feature = {
     key,
     name,
     lat: pt.lat,
     lon: pt.lon,
-    distance: distanceMetres(hive, pt),
-    dir: bearing(hive, pt),
+    distance: distanceMetres(hive, distancePoint),
+    dir: bearing(hive, distancePoint),
     confidence,
   }
-  if (area !== undefined) feature.area = area
+  if (opts.area !== undefined) feature.area = opts.area
+  if (opts.geometry) feature.geometry = opts.geometry
+  if (opts.bloom) feature.bloom = opts.bloom
+  if (opts.offSeasonFloor !== undefined) feature.offSeasonFloor = opts.offSeasonFloor
+  if (opts.scoreMultiplier !== undefined) feature.scoreMultiplier = opts.scoreMultiplier
   return feature
 }

@@ -59,7 +59,7 @@ const SCOUT_FALLBACK_COUNT = 6
 // within it, so scouts genuinely reach the farthest scored patches.
 const BAND_RANGE: Record<BeeBand, [number, number]> = {
   orientation: [0, 500],
-  forager: [700, 3200],
+  forager: [0, 3200],
   scout: [2800, 5200],
 }
 

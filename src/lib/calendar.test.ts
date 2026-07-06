@@ -27,13 +27,37 @@ describe('forageCalendar', () => {
 
   it('reports steady forage with no severe gap when sources cover the whole season', () => {
     const result = forageCalendar(
-      [feature('orchard', 100), feature('hedge', 100), feature('heath', 100), feature('meadow', 100)],
+      [
+        feature('orchard', 100),
+        feature('hedge', 100),
+        feature('heath', 100),
+        feature('meadow', 100),
+        { ...feature('garden', 100), bloom: [80, 105, 285, 315], offSeasonFloor: 0.35 },
+      ],
       6,
     )
     expect(result).not.toBeNull()
     if (!result) return
     expect(result.isGap).toBe(false)
     expect(result.suggestions).toHaveLength(0)
+  })
+
+  it('uses area and score multipliers in the monthly weighting', () => {
+    const plain = forageCalendar([feature('heath', 100)], 7)
+    const large = forageCalendar([{ ...feature('heath', 100), area: 50, scoreMultiplier: 0.5 }], 7)
+    expect(plain).not.toBeNull()
+    expect(large).not.toBeNull()
+    if (!plain || !large) return
+    expect(large.peak).toBeLessThan(plain.peak)
+  })
+
+  it('shifts bloom timing with the growing-degree-day offset', () => {
+    const normal = forageCalendar([feature('orchard', 100)], 3, 0)
+    const advanced = forageCalendar([feature('orchard', 100)], 3, 25)
+    expect(normal).not.toBeNull()
+    expect(advanced).not.toBeNull()
+    if (!normal || !advanced) return
+    expect(advanced.monthly[3]).toBeGreaterThan(normal.monthly[3])
   })
 
   it('passes nowMonth through and normalises the peak across 12 months', () => {

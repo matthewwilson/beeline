@@ -18,8 +18,9 @@ export function MatingRadius() {
 
       {showMatingRadius && (
         <p className={`hint ${styles.blockHint}`}>
-          ~{MATING_RADIUS_KILOMETRES} km — the practical reach to drone congregation areas. Queens usually mate
-          within 2 to 3 km (Jensen et al., 2005). The distance rings are hidden while this is on.
+          ~{MATING_RADIUS_KILOMETRES} km — a practical search radius for drone congregation areas. Queens often mate
+          a few kilometres from the hive, while genetic work has found most matings within about 7.5 km. The distance
+          rings are hidden while this is on.
         </p>
       )}
     </>

@@ -13,8 +13,8 @@ function scored(distance: number, score: number): ScoredFeature {
 describe('candidatePool', () => {
   const patches = [scored(400, 9), scored(1800, 5), scored(4600, 3)]
 
-  it('keeps foragers in the mid range', () => {
-    expect(candidatePool(patches, 'forager')).toEqual([patches[1]])
+  it('lets foragers use nearby and mid-range forage', () => {
+    expect(candidatePool(patches, 'forager')).toEqual([patches[0], patches[1]])
   })
   it('sends scouts to the far range even when nearer patches score higher', () => {
     expect(candidatePool(patches, 'scout')).toEqual([patches[2]])

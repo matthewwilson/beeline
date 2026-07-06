@@ -27,7 +27,7 @@ forage references. A future update can drop in the exact per-species figures onc
 | garden | mixed ornamentals + tree species | Urban nectar studies (Tew et al.) show gardens are consistently rich | 7 |
 | orchard | apple/pear/cherry (*Malus/Pyrus/Prunus*) | Strong but short spring blossom pulse | 7 |
 | allotments | flowering veg, soft fruit, beans | Mixed, moderate | 6 |
-| farmland | oilseed rape (*Brassica napus*), field beans, clover leys | Very high when OSR flowers, otherwise low - captured via bloom window, not base | 6 |
+| farmland | oilseed rape (*Brassica napus*), field beans, clover leys | Very high when flowering crops are present, otherwise low; generic OSM farmland is discounted unless crop tags indicate rape, beans or clover | 6 |
 | wood | willow (*Salix*), sycamore (*Acer*), lime (*Tilia*) | Willow early pollen, lime brief summer flow; patchy | 5 |
 | park | amenity grass + verges, ornamental trees | Mostly low, some tree/border value | 5 |
 
@@ -38,6 +38,11 @@ shifted earlier/later by a growing-degree-day (base 5C) anomaly computed from Op
 warm year advances bloom. Windows are approximate and intended for relative ranking, not
 phenological prediction. Sources: Woodland Trust Nature's Calendar summaries, standard UK/Ireland
 beekeeping forage calendars, and the All-Ireland Pollinator Plan.
+
+Each class also has an off-season floor. Short pulse resources such as orchard blossom and
+flowering crops drop close to zero outside their bloom window; mixed habitats such as gardens,
+parks, allotments and scrub retain a higher floor because they contain many species with staggered
+flowering.
 
 ## GDD baseline
 `GDD_BASELINE` is a rough NI-lowland cumulative growing-degree-day (base 5C) curve by day-of-year,
@@ -52,6 +57,10 @@ bramble/gorse/ivy→scrub; heather→heath; white clover/dandelion/knapweed→me
 sycamore→wood; oilseed rape/field beans→farmland; apple→orchard; phacelia/borage/comfrey/
 lavender/rose/foxglove/peony→garden. Free-text "other" → `garden` (a moderate default).
 
+Known observed flowers can override their class bloom timing where the class would be misleading:
+bramble, gorse and ivy still display as `scrub`, but score with plant-specific windows so ivy is
+late-season forage and gorse is treated as extended/winter-spring forage rather than summer bramble.
+
 ## Habitat area (`areaFactor`)
 DAERA/NIEA priority-habitat polygons carry a mapped area (hectares) that a point source (an OSM
 tag or an observed flower) does not. A larger patch plausibly holds more forage, so the score
@@ -59,6 +68,11 @@ gets a gentle, saturating lift: `areaFactor = clamp(1 + 0.12 × log10(1 + hectar
 Area-less features (undefined or 0) score at ×1, so only surveyed habitats are affected. The log
 and the ×1.4 cap keep it a tie-breaker: it nudges the ranking of comparable habitats without ever
 outweighing distance decay, bloom timing or the confidence tier.
+
+Where service geometry is available, distance and bearing are measured to the nearest useful part
+of the line/polygon rather than to its centre. The centre is kept for marker placement only. This
+matters for long hedges, tree rows and large or concave habitat polygons that may intersect a
+hive's 5 km range even when their centre does not.
 
 ## Gap-filling plants (`GAP_PLANTS`)
 Suggestions for filling a detected forage gap are drawn from the All-Ireland Pollinator Plan and

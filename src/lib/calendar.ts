@@ -1,7 +1,7 @@
 import { CONFIDENCE_WEIGHTS, FORAGE } from '../data/forage'
-import { MONTHS } from '../data/bloom'
+import { MONTHS, OFF_SEASON_FLOOR } from '../data/bloom'
 import { GAP_PLANTS } from '../data/plants'
-import { bloomFactorAtDoy } from './scoring'
+import { areaFactor, bloomFactorAtDoy, bloomFactorForWindowAtDoy } from './scoring'
 import type { Feature } from '../types'
 
 export interface CalendarResult {
@@ -30,17 +30,26 @@ function gapSuggestions(monthIndex: number): string[] {
 export function forageCalendar(
   features: Feature[],
   nowMonth: number = new Date().getMonth(),
+  growingDegreeDaysOffsetDays = 0,
 ): CalendarResult | null {
   if (!features.length) return null
 
   const weights = features.map(
-    (f) => FORAGE[f.key].base * Math.exp(-f.distance / 1500) * (CONFIDENCE_WEIGHTS[f.confidence] ?? 1),
+    (f) =>
+      FORAGE[f.key].base *
+      Math.exp(-f.distance / 1500) *
+      (CONFIDENCE_WEIGHTS[f.confidence] ?? 1) *
+      areaFactor(f.area) *
+      (f.scoreMultiplier ?? 1),
   )
   const monthly = MONTHS.map((_, m) => {
-    const midDoy = Math.round((m + 0.5) * 30.4)
+    const midDoy = Math.round((m + 0.5) * 30.4) + growingDegreeDaysOffsetDays
     let sum = 0
     features.forEach((f, i) => {
-      sum += weights[i] * bloomFactorAtDoy(f.key, midDoy)
+      const bloomFactor = f.bloom
+        ? bloomFactorForWindowAtDoy(f.bloom, midDoy, f.offSeasonFloor ?? OFF_SEASON_FLOOR[f.key])
+        : bloomFactorAtDoy(f.key, midDoy)
+      sum += weights[i] * bloomFactor
     })
     return sum
   })

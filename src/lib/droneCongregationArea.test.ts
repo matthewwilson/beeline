@@ -54,6 +54,14 @@ describe('slopeAspect', () => {
     const elev = g.points.map(() => 0)
     expect(slopeAspect(g, elev, 0, 0)).toBeNull()
   })
+  it('treats flat terrain as undefined aspect', () => {
+    const g = buildGrid(HIVE, 400, 200)
+    const elev = g.points.map(() => 50)
+    const sa = slopeAspect(g, elev, 2, 2)
+    expect(sa).not.toBeNull()
+    expect(sa!.slopePct).toBe(0)
+    expect(sa!.aspectDeg).toBeNull()
+  })
 })
 
 describe('scoreGrid', () => {
@@ -103,6 +111,54 @@ describe('scoreGrid', () => {
       expect(cell.score).toBeGreaterThanOrEqual(0)
       expect(cell.score).toBeLessThanOrEqual(1)
     }
+  })
+
+  it('keeps flat terrain neutral for southness', () => {
+    const g = buildGrid(HIVE, 400, 200)
+    const cells = scoreGrid(g, g.points.map(() => 50), [], 1000)
+    expect(cells[12].factors.south).toBe(0.5)
+  })
+
+  it('uses feature geometry, not marker centre, for open-ground proximity', () => {
+    const g = buildGrid(HIVE, 400, 200)
+    const cell = g.points[12]
+    const distantMarker = { lat: cell.lat + 0.05, lon: cell.lon + 0.05 }
+    const land: Feature[] = [
+      {
+        ...feat('meadow', distantMarker),
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[
+            [cell.lon - 0.001, cell.lat - 0.001],
+            [cell.lon + 0.001, cell.lat - 0.001],
+            [cell.lon + 0.001, cell.lat + 0.001],
+            [cell.lon - 0.001, cell.lat + 0.001],
+            [cell.lon - 0.001, cell.lat - 0.001],
+          ]],
+        },
+      },
+    ]
+    const cells = scoreGrid(g, null, land, 1000)
+    expect(cells[12].factors.openness).toBe(1)
+  })
+
+  it('uses hedge line geometry for shelter proximity', () => {
+    const g = buildGrid(HIVE, 400, 200)
+    const cell = g.points[12]
+    const land: Feature[] = [
+      {
+        ...feat('hedge', { lat: cell.lat + 0.05, lon: cell.lon + 0.05 }),
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [cell.lon - 0.002, cell.lat],
+            [cell.lon + 0.002, cell.lat],
+          ],
+        },
+      },
+    ]
+    const cells = scoreGrid(g, null, land, 1000)
+    expect(cells[12].factors.shelter).toBe(1)
   })
 })
 

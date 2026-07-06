@@ -1,5 +1,5 @@
 import type { Feature, ForageKey, LatLon } from '../types'
-import { clamp, distanceMetres, offsetLatLon } from './geo'
+import { clamp, distanceMetres, distanceToGeometryMetres, offsetLatLon } from './geo'
 
 /**
  * Drone congregation area suitability model.
@@ -87,13 +87,14 @@ export function slopeAspect(
   elevations: number[],
   r: number,
   c: number,
-): { slopePct: number; aspectDeg: number } | null {
+): { slopePct: number; aspectDeg: number | null } | null {
   const { cols, rows, stepMetres } = grid
   if (r <= 0 || c <= 0 || r >= rows - 1 || c >= cols - 1) return null
   const at = (rr: number, cc: number) => elevations[rr * cols + cc]
   const dzdx = (at(r, c + 1) - at(r, c - 1)) / (2 * stepMetres) // rise per metre east
   const dzdy = (at(r - 1, c) - at(r + 1, c)) / (2 * stepMetres) // rise per metre north (row-1 is north)
   const slopePct = Math.sqrt(dzdx * dzdx + dzdy * dzdy) * 100
+  if (slopePct < 0.01) return { slopePct, aspectDeg: null }
   // Downhill direction points opposite the gradient.
   const aspectDeg = ((Math.atan2(-dzdx, -dzdy) * 180) / Math.PI + 360) % 360
   return { slopePct, aspectDeg }
@@ -113,7 +114,7 @@ function opennessAt(cell: LatLon, land: Feature[]): number {
   let woodDistance = Infinity
   for (const f of land) {
     if (!OPEN_FORAGE_KEYS.has(f.key) && !CLOSED_FORAGE_KEYS.has(f.key)) continue
-    const d = distanceMetres(cell, f)
+    const d = distanceToFeatureMetres(cell, f)
     if (OPEN_FORAGE_KEYS.has(f.key)) openDistance = Math.min(openDistance, d)
     else woodDistance = Math.min(woodDistance, d)
   }
@@ -124,9 +125,13 @@ function shelterAt(cell: LatLon, land: Feature[]): number {
   let landmarkDistance = Infinity
   for (const f of land) {
     if (!LANDMARK_FORAGE_KEYS.has(f.key)) continue
-    landmarkDistance = Math.min(landmarkDistance, distanceMetres(cell, f))
+    landmarkDistance = Math.min(landmarkDistance, distanceToFeatureMetres(cell, f))
   }
   return prox(landmarkDistance, LANDMARK_RADIUS_METRES)
+}
+
+function distanceToFeatureMetres(cell: LatLon, feature: Feature): number {
+  return distanceToGeometryMetres(cell, feature.geometry) ?? distanceMetres(cell, feature)
 }
 
 export interface FactorRow {

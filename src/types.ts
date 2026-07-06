@@ -15,6 +15,7 @@ export type PollenName = PollenKey | 'mixed'
 
 export type Confidence = 'observed' | 'surveyed' | 'openStreetMap'
 export type Season = 'auto' | 'spring' | 'summer' | 'late'
+export type BloomWindow = [number, number, number, number]
 
 export interface ForageMeta {
   label: string
@@ -28,6 +29,12 @@ export interface LatLon {
   lat: number
   lon: number
 }
+
+export type FeatureGeometry =
+  | { type: 'Point'; coordinates: [number, number] }
+  | { type: 'LineString'; coordinates: number[][] }
+  | { type: 'Polygon'; coordinates: number[][][] }
+  | { type: 'MultiPolygon'; coordinates: number[][][][] }
 
 export interface Hive {
   id: number
@@ -56,6 +63,10 @@ export interface Feature {
   dir: string
   confidence: Confidence
   area?: number | null
+  geometry?: FeatureGeometry
+  bloom?: BloomWindow
+  offSeasonFloor?: number
+  scoreMultiplier?: number
 }
 
 export interface ScoredFeature extends Feature {

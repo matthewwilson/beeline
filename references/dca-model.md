@@ -57,7 +57,9 @@ one extra network call.
 
 ### Data sources
 - **Land cover** (openness, shelter): the OpenStreetMap Overpass land-use features BeeLine
-  already fetches for forage (`src/services/overpass.ts`) — reused, no extra request.
+  already fetches for forage (`src/services/overpass.ts`) — reused, no extra request. OSM way
+  geometry and DAERA/NIEA polygon geometry are preserved where available, so proximity is to the
+  line/polygon rather than only to a centre point.
 - **Topography** (low, aspect, slope): elevations from the keyless **Open-Meteo Elevation
   API** (`src/services/elevation.ts`), ~90 m Copernicus/SRTM data, batched ≤100 points per
   request. Slope and aspect are derived by central differences over the elevation grid.
@@ -65,17 +67,30 @@ one extra network call.
 ### Graceful degradation
 If the elevation API is unavailable, the model drops the three topographic factors and scores
 on land cover alone (openness 0.65 / shelter 0.35, renormalised). The UI flags this as a
-"land-cover estimate only" (`droneCongregationAreaStatus === 'partial'`).
+"land-cover estimate only" (`droneCongregationAreaStatus === 'partial-elevation'`). If land-cover
+data is unavailable but elevation succeeds, the UI flags a terrain-only estimate
+(`partial-land-cover`). If both live inputs fail, the layer is labelled as a low-confidence partial
+estimate.
 
 ### Rendering
-The map (`src/map/MapView.tsx`) draws the stronger cells (top ~half by relative score) as
-graded, warm, semi-transparent squares — amber (less likely) → deep red (more likely). Cells
-are non-interactive so you can still click the map to drop a hive beneath them.
+The map (`src/map/MapView.tsx`) draws cells with an absolute model score of at least 0.35 as
+graded, warm, semi-transparent squares — amber (less likely) → deep red (more likely). Popups
+show the absolute model score and factor breakdown. This avoids presenting the best weak cell in
+a poor landscape as "100% suitable".
+
+## Queen mating radius
+
+BeeLine draws a **5 km** practical search ring for queen mating flights. This is broader than the
+2 km DCA candidate grid because the ring communicates plausible queen/drone mating reach, while
+the DCA layer keeps its high-resolution elevation grid focused on the most likely nearby search
+area. Beekeeping literature commonly describes DCAs a few kilometres from colonies; genetic
+paternity work (Jensen et al., 2005) found most matings within about **7.5 km**, so 5 km is a
+conservative practical field-search radius rather than a hard biological limit.
 
 ## Limitations (read before trusting a hot cell)
 - **Coarse elevation.** 90 m SRTM under-resolves the 100 m features that matter; aspect/slope
   are approximate and derived, not surveyed.
-- **No urban/building layer.** Overpass here fetches forage land use, not buildings, so
+- **Limited urban/building layer.** Overpass here fetches forage land use, not buildings, so
   "openness" is inferred from open-land vs woodland proximity, not from built-up density. A
   cell in a treeless housing estate can look artificially open.
 - **Not validated for this region.** The source studies are from Puerto Rico and Japan.

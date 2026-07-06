@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { areaFactor, bloomFactorAtDoy, expectedGrowingDegreeDays, scoreOf, seasonFactor } from './scoring'
+import {
+  areaFactor,
+  baselineDayForGrowingDegreeDays,
+  bloomFactorAtDoy,
+  expectedGrowingDegreeDays,
+  growingDegreeDaysOffsetDays,
+  scoreOf,
+  seasonFactor,
+} from './scoring'
+import { dayOfYear } from './geo'
 import type { Feature, ForageKey } from '../types'
 
 function feature(key: ForageKey, distance: number, confidence: Feature['confidence']): Feature {
@@ -9,11 +18,11 @@ function feature(key: ForageKey, distance: number, confidence: Feature['confiden
 describe('bloomFactorAtDoy', () => {
   it('peaks inside the peak window and bottoms out off-season', () => {
     expect(bloomFactorAtDoy('orchard', 130)).toBe(1.25)
-    expect(bloomFactorAtDoy('orchard', 90)).toBe(0.25)
-    expect(bloomFactorAtDoy('orchard', 200)).toBe(0.25)
+    expect(bloomFactorAtDoy('orchard', 90)).toBe(0.05)
+    expect(bloomFactorAtDoy('orchard', 200)).toBe(0.05)
   })
   it('ramps linearly into peak', () => {
-    expect(bloomFactorAtDoy('orchard', 109)).toBeCloseTo(0.725, 3)
+    expect(bloomFactorAtDoy('orchard', 109)).toBeCloseTo(0.575, 3)
   })
 })
 
@@ -52,6 +61,19 @@ describe('scoreOf', () => {
     expect(big).toBeGreaterThan(noArea)
     expect(big / noArea).toBeCloseTo(areaFactor(50), 6)
   })
+  it('uses plant-specific bloom windows on observed flowers', () => {
+    const base = { key: 'scrub' as const, name: 'Ivy', lat: 0, lon: 0, distance: 100, dir: 'N', confidence: 'observed' as const }
+    const ctx = { season: 'auto' as const, growingDegreeDaysOffsetDays: 275 - dayOfYear(), selectedPollen: null }
+    const ivy = scoreOf({ ...base, bloom: [240, 260, 300, 325], offSeasonFloor: 0.03 }, ctx)
+    const scrub = scoreOf(base, ctx)
+    expect(ivy).toBeGreaterThan(scrub)
+  })
+  it('discounts generic farmland without flowering crop evidence', () => {
+    const ctx = { season: 'spring' as const, growingDegreeDaysOffsetDays: 0, selectedPollen: null }
+    const generic = scoreOf({ ...feature('farmland', 500, 'openStreetMap'), scoreMultiplier: 0.45 }, ctx)
+    const crop = scoreOf(feature('farmland', 500, 'openStreetMap'), ctx)
+    expect(generic / crop).toBeCloseTo(0.45, 6)
+  })
 })
 
 describe('areaFactor', () => {
@@ -69,5 +91,9 @@ describe('expectedGrowingDegreeDays', () => {
     expect(expectedGrowingDegreeDays(1)).toBe(2)
     expect(expectedGrowingDegreeDays(365)).toBe(1670)
     expect(expectedGrowingDegreeDays(45)).toBeCloseTo(25, 6)
+  })
+  it('inverts cumulative GDD to a stable day offset', () => {
+    expect(baselineDayForGrowingDegreeDays(400)).toBe(151)
+    expect(growingDegreeDaysOffsetDays(400, 141)).toBe(10)
   })
 })

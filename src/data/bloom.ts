@@ -1,4 +1,4 @@
-import type { ForageKey, Season } from '../types'
+import type { BloomWindow, ForageKey, Season } from '../types'
 
 // Manual season multipliers (used when the Season selector is not "auto").
 export const SEASON: Record<Exclude<Season, 'auto'>, Partial<Record<ForageKey, number>>> = {
@@ -9,7 +9,7 @@ export const SEASON: Record<Exclude<Season, 'auto'>, Partial<Record<ForageKey, n
 
 // Approx NI bloom windows as day-of-year [start, peakStart, peakEnd, end] (see references/forage-values.md).
 // Used in "auto" mode, shifted by a growing-degree-day anomaly so a warm year advances bloom.
-export const BLOOM: Record<ForageKey, [number, number, number, number]> = {
+export const BLOOM: Record<ForageKey, BloomWindow> = {
   hedge: [75, 120, 215, 255],
   scrub: [130, 165, 245, 280],
   heath: [185, 210, 250, 275],
@@ -20,6 +20,21 @@ export const BLOOM: Record<ForageKey, [number, number, number, number]> = {
   garden: [100, 150, 250, 292],
   park: [110, 150, 245, 288],
   allotments: [110, 150, 250, 288],
+}
+
+// Off-peak forage floor by class. Short, pulse-like resources drop close to zero outside
+// bloom; mixed habitats stay partially useful because they contain many species.
+export const OFF_SEASON_FLOOR: Record<ForageKey, number> = {
+  hedge: 0.12,
+  heath: 0.08,
+  meadow: 0.15,
+  scrub: 0.18,
+  garden: 0.2,
+  orchard: 0.05,
+  allotments: 0.18,
+  farmland: 0.05,
+  wood: 0.12,
+  park: 0.18,
 }
 
 // Rough Northern Ireland lowland cumulative growing degree days (base 5C) by day-of-year,

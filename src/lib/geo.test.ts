@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { bearing, clamp, dayOfYear, distanceMetres, escapeMarkup, formatDistance, polygonCentroid } from './geo'
+import {
+  bearing,
+  clamp,
+  dayOfYear,
+  distanceMetres,
+  distanceToGeometryMetres,
+  escapeMarkup,
+  formatDistance,
+  nearestPointOnGeometry,
+  polygonCentroid,
+} from './geo'
 
 describe('distanceMetres', () => {
   it('is zero for identical points', () => {
@@ -31,8 +41,40 @@ describe('polygonCentroid', () => {
     expect(
       polygonCentroid({ type: 'MultiPolygon', coordinates: [[[[0, 0], [4, 0], [4, 4], [0, 4]]]] }),
     ).toEqual([2, 2])
-    expect(polygonCentroid({ type: 'Point', coordinates: [[[0, 0]]] })).toBeNull()
+    expect(polygonCentroid({ type: 'Point', coordinates: [0, 0] })).toBeNull()
     expect(polygonCentroid(null)).toBeNull()
+  })
+})
+
+describe('geometry distances', () => {
+  it('treats a point inside a polygon as zero distance', () => {
+    const hive = { lat: 54.6, lon: -5.9 }
+    const geometry = {
+      type: 'Polygon' as const,
+      coordinates: [[[-5.91, 54.59], [-5.89, 54.59], [-5.89, 54.61], [-5.91, 54.61], [-5.91, 54.59]]],
+    }
+    expect(distanceToGeometryMetres(hive, geometry)).toBe(0)
+    expect(nearestPointOnGeometry(hive, geometry)).toEqual(hive)
+  })
+
+  it('finds the nearest point on a line', () => {
+    const hive = { lat: 54.6, lon: -5.9 }
+    const geometry = { type: 'LineString' as const, coordinates: [[-5.91, 54.601], [-5.89, 54.601]] }
+    const nearest = nearestPointOnGeometry(hive, geometry)
+    expect(nearest?.lat).toBeCloseTo(54.601, 3)
+    expect(distanceToGeometryMetres(hive, geometry)).toBeLessThan(120)
+  })
+
+  it('uses the nearest polygon in a multipolygon', () => {
+    const hive = { lat: 54.6, lon: -5.9 }
+    const geometry = {
+      type: 'MultiPolygon' as const,
+      coordinates: [
+        [[[-6.2, 54.2], [-6.1, 54.2], [-6.1, 54.3], [-6.2, 54.3], [-6.2, 54.2]]],
+        [[[-5.91, 54.59], [-5.89, 54.59], [-5.89, 54.61], [-5.91, 54.61], [-5.91, 54.59]]],
+      ],
+    }
+    expect(distanceToGeometryMetres(hive, geometry)).toBe(0)
   })
 })
 

@@ -1,8 +1,8 @@
 import { FORAGE } from '../data/forage'
 import { makeFeature } from '../lib/features'
-import { offsetLatLon, polygonCentroid, type FeatureGeometry } from '../lib/geo'
+import { offsetLatLon, polygonCentroid } from '../lib/geo'
 import { fetchJson } from './http'
-import type { Feature, ForageKey, LatLon } from '../types'
+import type { Feature, FeatureGeometry, ForageKey, LatLon } from '../types'
 
 // DAERA/NIEA Priority Habitats (OGL) — live ArcGIS FeatureServers, CORS-open, verified.
 const HABITAT_BASE = 'https://services-eu1.arcgis.com/kswen6BYexuc1SUk/arcgis/rest/services'
@@ -37,7 +37,12 @@ export async function fetchHabitats(hive: LatLon): Promise<Feature[]> {
       if (!c) continue
       const props = f.properties ?? {}
       const pt = { lat: c[1], lon: c[0] }
-      mapped.push(makeFeature(layer.key, props.Hab_Type ?? FORAGE[layer.key].label, pt, hive, 'surveyed', props.Area_Hectares ?? null))
+      mapped.push(
+        makeFeature(layer.key, props.Hab_Type ?? FORAGE[layer.key].label, pt, hive, 'surveyed', {
+          area: props.Area_Hectares ?? null,
+          geometry: f.geometry,
+        }),
+      )
     }
     return mapped
   })

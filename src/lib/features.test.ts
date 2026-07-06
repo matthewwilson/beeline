@@ -22,4 +22,15 @@ describe('makeFeature', () => {
     expect(makeFeature('wood', 'Wood', hive, hive, 'surveyed', 12).area).toBe(12)
     expect(makeFeature('wood', 'Wood', hive, hive, 'surveyed', null).area).toBeNull()
   })
+
+  it('uses geometry for distance while preserving the display point', () => {
+    const f = makeFeature('meadow', 'Long meadow', { lat: 54.7, lon: -5.9 }, hive, 'surveyed', {
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[[-5.91, 54.59], [-5.89, 54.59], [-5.89, 54.61], [-5.91, 54.61], [-5.91, 54.59]]],
+      },
+    })
+    expect(f.lat).toBe(54.7)
+    expect(f.distance).toBe(0)
+  })
 })

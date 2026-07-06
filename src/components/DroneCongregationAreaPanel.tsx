@@ -32,9 +32,21 @@ export function DroneCongregationAreaPanel() {
         <p className={`hint ${styles.blockHint}`}>Modelling the terrain around this hive…</p>
       )}
 
-      {showDroneCongregationArea && droneCongregationAreaStatus === 'partial' && (
+      {showDroneCongregationArea && droneCongregationAreaStatus === 'partial-elevation' && (
         <p className={`hint ${styles.blockHint}`}>
           Elevation data unavailable — showing a land-cover estimate only.
+        </p>
+      )}
+
+      {showDroneCongregationArea && droneCongregationAreaStatus === 'partial-land-cover' && (
+        <p className={`hint ${styles.blockHint}`}>
+          Land-cover data unavailable — showing a terrain estimate only.
+        </p>
+      )}
+
+      {showDroneCongregationArea && droneCongregationAreaStatus === 'partial' && (
+        <p className={`hint ${styles.blockHint}`}>
+          Live landscape data is incomplete — showing a low-confidence estimate.
         </p>
       )}
 

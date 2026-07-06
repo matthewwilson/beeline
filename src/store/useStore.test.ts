@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchOverpass, overpassToFeatures } from '../services/overpass'
+import { fetchHabitats } from '../services/habitats'
+import { fetchElevations } from '../services/elevation'
 import { fetchDailyForecast } from '../services/weather'
 import { useStore } from './useStore'
 import type { DailyForecast, Feature, Hive } from '../types'
@@ -40,7 +42,20 @@ const hiveB: Hive = { id: 2, name: 'B', lat: 55, lon: -7, createdAt: '' }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  useStore.setState({ activeHive: null, landFeatures: [], features: [], flowers: [], forageStatus: 'idle' })
+  vi.mocked(fetchOverpass).mockResolvedValue([])
+  vi.mocked(fetchHabitats).mockResolvedValue([])
+  vi.mocked(fetchElevations).mockResolvedValue(null)
+  useStore.setState({
+    activeHive: null,
+    landFeatures: [],
+    landCoverAvailable: false,
+    features: [],
+    flowers: [],
+    forageStatus: 'idle',
+    showDroneCongregationArea: false,
+    droneCongregationAreaCells: [],
+    droneCongregationAreaStatus: 'idle',
+  })
 })
 afterEach(() => vi.clearAllMocks())
 
@@ -68,6 +83,22 @@ describe('selectHive stale-request guard', () => {
     expect(useStore.getState().activeHive).toBe(hiveB)
     expect(useStore.getState().features).toHaveLength(1)
     expect(useStore.getState().features[0].name).toBe('B')
+  })
+
+  it('merges overlapping OSM and surveyed land features', async () => {
+    vi.mocked(overpassToFeatures).mockReturnValueOnce([
+      { key: 'meadow', name: 'OSM meadow', lat: hiveA.lat, lon: hiveA.lon, distance: 0, dir: 'N', confidence: 'openStreetMap' },
+    ])
+    vi.mocked(fetchHabitats).mockResolvedValueOnce([
+      { key: 'meadow', name: 'Surveyed meadow', lat: hiveA.lat, lon: hiveA.lon, distance: 0, dir: 'N', confidence: 'surveyed', area: 4 },
+    ])
+
+    useStore.getState().selectHive(hiveA)
+    await flush()
+
+    expect(useStore.getState().landFeatures).toHaveLength(1)
+    expect(useStore.getState().landFeatures[0].confidence).toBe('surveyed')
+    expect(useStore.getState().landFeatures[0].area).toBe(4)
   })
 })
 
@@ -117,5 +148,102 @@ describe('saveFlower / removeFlower', () => {
     useStore.getState().removeFlower(st.flowers[0].id)
     expect(useStore.getState().flowers).toHaveLength(0)
     expect(useStore.getState().features.some((f) => f.confidence === 'observed')).toBe(false)
+  })
+
+  it('attaches plant-specific bloom metadata to recognised observed flowers', () => {
+    useStore.setState({
+      activeHive: hiveA,
+      landFeatures: [],
+      features: [],
+      flowers: [],
+      pendingFlower: { lat: 54.001, lon: -6 },
+    })
+
+    useStore.getState().saveFlower('Ivy', 'scrub', '')
+    const observed = useStore.getState().features.find((f) => f.confidence === 'observed')
+
+    expect(observed?.bloom).toEqual([240, 260, 300, 325])
+    expect(observed?.offSeasonFloor).toBe(0.03)
+  })
+})
+
+describe('drone congregation area loading', () => {
+  it('does not commit a DCA result after the layer is toggled off', async () => {
+    vi.mocked(fetchOverpass).mockResolvedValueOnce([])
+    vi.mocked(fetchHabitats).mockResolvedValueOnce([])
+    const elevations = deferred<number[] | null>()
+    vi.mocked(fetchElevations).mockReturnValueOnce(elevations.promise)
+
+    useStore.getState().selectHive(hiveA)
+    await flush()
+    useStore.getState().toggleDroneCongregationArea()
+    expect(useStore.getState().droneCongregationAreaStatus).toBe('loading')
+
+    useStore.getState().toggleDroneCongregationArea()
+    elevations.resolve([1])
+    await flush()
+
+    expect(useStore.getState().showDroneCongregationArea).toBe(false)
+    expect(useStore.getState().droneCongregationAreaStatus).toBe('idle')
+    expect(useStore.getState().droneCongregationAreaCells).toEqual([])
+  })
+
+  it('marks DCA as terrain-only when land-cover data is unavailable', async () => {
+    vi.mocked(fetchOverpass).mockResolvedValueOnce(null)
+    vi.mocked(fetchHabitats).mockResolvedValueOnce([])
+    vi.mocked(fetchElevations).mockResolvedValueOnce(Array.from({ length: 441 }, () => 50))
+
+    useStore.getState().selectHive(hiveA)
+    await flush()
+    useStore.getState().toggleDroneCongregationArea()
+    await flush()
+
+    expect(useStore.getState().droneCongregationAreaStatus).toBe('partial-land-cover')
+    expect(useStore.getState().droneCongregationAreaCells.length).toBeGreaterThan(0)
+  })
+
+  it('marks DCA as land-cover-only when elevation is unavailable', async () => {
+    vi.mocked(overpassToFeatures).mockReturnValueOnce([
+      { key: 'meadow', name: 'Meadow', lat: hiveA.lat, lon: hiveA.lon, distance: 0, dir: 'N', confidence: 'openStreetMap' },
+    ])
+    vi.mocked(fetchElevations).mockResolvedValueOnce(null)
+
+    useStore.getState().selectHive(hiveA)
+    await flush()
+    useStore.getState().toggleDroneCongregationArea()
+    await flush()
+
+    expect(useStore.getState().landCoverAvailable).toBe(true)
+    expect(useStore.getState().droneCongregationAreaStatus).toBe('partial-elevation')
+  })
+
+  it('marks DCA as low-confidence partial when both elevation and land cover are unavailable', async () => {
+    vi.mocked(fetchOverpass).mockResolvedValueOnce(null)
+    vi.mocked(fetchHabitats).mockResolvedValueOnce([])
+    vi.mocked(fetchElevations).mockResolvedValueOnce(null)
+
+    useStore.getState().selectHive(hiveA)
+    await flush()
+    useStore.getState().toggleDroneCongregationArea()
+    await flush()
+
+    expect(useStore.getState().landCoverAvailable).toBe(false)
+    expect(useStore.getState().droneCongregationAreaStatus).toBe('partial')
+  })
+
+  it('waits for forage loading before starting a toggled-on DCA scan', async () => {
+    const overpass = deferred<[]>()
+    vi.mocked(fetchOverpass).mockReturnValueOnce(overpass.promise)
+
+    useStore.getState().selectHive(hiveA)
+    useStore.getState().toggleDroneCongregationArea()
+
+    expect(useStore.getState().droneCongregationAreaStatus).toBe('loading')
+    expect(fetchElevations).not.toHaveBeenCalled()
+
+    overpass.resolve([])
+    await flush()
+
+    expect(fetchElevations).toHaveBeenCalledOnce()
   })
 })

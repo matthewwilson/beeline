@@ -5,7 +5,7 @@ import { POLLEN, pollenColour } from '../data/pollen'
 import { createBees, stepBee } from '../lib/beeFlights'
 import type { Bee } from '../lib/beeFlights'
 import { cellFactorRows, DEFAULT_STEP_METRES } from '../lib/droneCongregationArea'
-import { escapeMarkup, formatDistance, offsetLatLon } from '../lib/geo'
+import { clamp, escapeMarkup, formatDistance, offsetLatLon } from '../lib/geo'
 import { useScoredFeatures } from '../lib/useScoredFeatures'
 import { useStore } from '../store/useStore'
 import { useUiStore } from '../store/useUiStore'
@@ -254,27 +254,33 @@ export function MapView() {
     const group = layers.current.droneCongregationArea
     group.clearLayers()
     if (!showDroneCongregationArea || droneCongregationAreaCells.length === 0) return
-    const haveElev = droneCongregationAreaStatus === 'ready'
-    const maxScore = droneCongregationAreaCells.reduce((m, c) => Math.max(m, c.score), 0) || 1
+    const haveElev = droneCongregationAreaStatus === 'ready' || droneCongregationAreaStatus === 'partial-land-cover'
     const half = DEFAULT_STEP_METRES / 2
     for (const cell of droneCongregationAreaCells) {
-      const t = cell.score / maxScore
-      if (t < 0.5) continue // hide the weak majority to keep the map readable
-      const k = (t - 0.5) / 0.5
+      if (cell.score < 0.35) continue // hide low absolute suitability to keep the map honest and readable
+      const k = clamp((cell.score - 0.35) / 0.65, 0, 1)
       const sw = offsetLatLon(cell, -half, -half)
       const ne = offsetLatLon(cell, half, half)
       const rows = cellFactorRows(cell, haveElev)
         .map((r) => `<div class="pin-pop__meta">${r.label} · ${r.pct}%</div>`)
         .join('')
+      const missingData =
+        droneCongregationAreaStatus === 'partial-elevation'
+          ? '<div class="pin-pop__meta">No elevation data — land cover only.</div>'
+          : droneCongregationAreaStatus === 'partial-land-cover'
+            ? '<div class="pin-pop__meta">No land-cover data — terrain only.</div>'
+            : droneCongregationAreaStatus === 'partial'
+              ? '<div class="pin-pop__meta">Live landscape data incomplete.</div>'
+              : ''
       L.rectangle([[sw.lat, sw.lon], [ne.lat, ne.lon]], {
         stroke: false,
         fillColor: droneCongregationAreaColour(k),
         fillOpacity: 0.18 + 0.42 * k,
       })
         .bindPopup(
-          `<div class="pin-pop__title">🐝 Drone gathering · ${Math.round(t * 100)}% suitable</div>` +
+          `<div class="pin-pop__title">🐝 Drone gathering · ${Math.round(cell.score * 100)}% model score</div>` +
             rows +
-            (haveElev ? '' : '<div class="pin-pop__meta">No elevation data — land cover only.</div>'),
+            missingData,
         )
         .addTo(group)
     }
