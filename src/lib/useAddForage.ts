@@ -1,6 +1,5 @@
 import { useRef } from 'react'
 import type { ChangeEvent } from 'react'
-import { readPhotoLocation } from './photo'
 import { useStore } from '../store/useStore'
 import { useUiStore } from '../store/useUiStore'
 
@@ -75,6 +74,7 @@ export function useAddForage() {
     event.target.value = ''
     if (!file) return
     setStatus('Reading the photo…')
+    const { readPhotoLocation } = await import('./photo')
     const location = await readPhotoLocation(file)
     if (!location) {
       setStatus('No location saved in that photo. Add the flower by tapping the map instead.')

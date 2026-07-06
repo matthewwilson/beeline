@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { faPlus } from '@fortawesome/free-solid-svg-icons'
+import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useAddForage } from '../lib/useAddForage'
 import { useStore } from '../store/useStore'

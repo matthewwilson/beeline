@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { faBars, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faBars } from '@fortawesome/free-solid-svg-icons/faBars'
+import { faXmark } from '@fortawesome/free-solid-svg-icons/faXmark'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { MapPanel } from './MapPanel'
 import styles from './mobilefielddrawer.module.css'

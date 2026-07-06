@@ -9,13 +9,14 @@ const MAX_PER_REQUEST = 100
 
 export async function fetchElevations(points: LatLon[]): Promise<number[] | null> {
   if (points.length === 0) return []
-  const chunks: number[][] = []
+  const requests: Array<Promise<number[] | null>> = []
   for (let i = 0; i < points.length; i += MAX_PER_REQUEST) {
-    const chunk = await fetchChunk(points.slice(i, i + MAX_PER_REQUEST))
-    if (chunk === null) return null
-    chunks.push(chunk)
+    requests.push(fetchChunk(points.slice(i, i + MAX_PER_REQUEST)))
   }
-  return chunks.flat()
+  const chunks = await Promise.all(requests)
+  const goodChunks = chunks.filter((chunk): chunk is number[] => chunk !== null)
+  if (goodChunks.length !== chunks.length) return null
+  return goodChunks.flat()
 }
 
 async function fetchChunk(points: LatLon[]): Promise<number[] | null> {

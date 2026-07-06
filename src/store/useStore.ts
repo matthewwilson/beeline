@@ -105,20 +105,23 @@ export const useStore = create<BeeState>((set, get) => {
   async function loadWeather(hive: Hive, token: number) {
     set((s) => ({ weather: { ...s.weather, loading: true, current: null, forecast: null } }))
 
-    // The week-ahead strip and the current conditions are independent; fetch them in parallel.
-    void fetchDailyForecast(hive.lat, hive.lon).then((forecast) => {
+    // Weather calls are independent, so start them together and commit each result as it lands.
+    const forecastPromise = fetchDailyForecast(hive.lat, hive.lon)
+    const currentPromise = fetchCurrentWeather(hive.lat, hive.lon)
+    const gddPromise = fetchGddTotal(hive.lat, hive.lon)
+
+    void forecastPromise.then((forecast) => {
       if (token !== selectionToken || !forecast) return
       set((s) => ({ weather: { ...s.weather, forecast } }))
     })
 
-    const current = await fetchCurrentWeather(hive.lat, hive.lon)
+    const current = await currentPromise
     if (token !== selectionToken) return
     set((s) => ({ weather: { ...s.weather, current, loading: false } }))
 
-    const gddTotal = await fetchGddTotal(hive.lat, hive.lon)
+    const gddTotal = await gddPromise
     if (token !== selectionToken || gddTotal == null) return
-    const cur = get().weather.current
-    const perDay = Math.max(1, (cur ? cur.temperature_2m : 12) - 5)
+    const perDay = Math.max(1, (current ? current.temperature_2m : 12) - 5)
     const gddOffsetDays = clamp(Math.round((gddTotal - expectedGdd(dayOfYear())) / perDay), -25, 25)
     set((s) => ({ weather: { ...s.weather, gddTotal, gddOffsetDays } }))
   }

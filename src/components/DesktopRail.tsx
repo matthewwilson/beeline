@@ -1,4 +1,6 @@
-import { faGear, faMapLocationDot, faSpa } from '@fortawesome/free-solid-svg-icons'
+import { faGear } from '@fortawesome/free-solid-svg-icons/faGear'
+import { faMapLocationDot } from '@fortawesome/free-solid-svg-icons/faMapLocationDot'
+import { faSpa } from '@fortawesome/free-solid-svg-icons/faSpa'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useUiStore } from '../store/useUiStore'

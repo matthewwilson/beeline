@@ -51,8 +51,8 @@ export function App() {
       {isDesktop && view === 'setup' && <SetupPanel isDesktop />}
 
       {!isDesktop && view === 'map' && <MobileFieldDrawer />}
-      {!isDesktop && <ForagePanel isDesktop={false} />}
-      {!isDesktop && <SetupPanel isDesktop={false} />}
+      {!isDesktop && view === 'forage' && <ForagePanel isDesktop={false} />}
+      {!isDesktop && view === 'setup' && <SetupPanel isDesktop={false} />}
 
       {!isDesktop && <MapAddMenu />}
       {!isDesktop && <MobileNav />}
