@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { bearing, clamp, dayOfYear, distanceMetres } from '../lib/geo'
+import { clamp, dayOfYear } from '../lib/geo'
+import { makeFeature } from '../lib/features'
 import { buildGrid, scoreGrid, type DcaCell } from '../lib/dca'
 import { expectedGdd } from '../lib/scoring'
 import { fetchOverpass, overpassToFeatures } from '../services/overpass'
@@ -23,8 +24,6 @@ export type ForageStatus = 'idle' | 'scanning' | 'busy' | 'empty' | 'ready'
 // on land cover alone.
 export type DcaStatus = 'idle' | 'loading' | 'ready' | 'partial'
 
-export type MobileView = 'map' | 'controls' | 'results'
-
 interface WeatherState {
   current: CurrentWeather | null
   gddTotal: number | null
@@ -45,19 +44,13 @@ const initialBio: BioState = { loading: false, hornetCount: null, failed: false 
 let selectionToken = 0
 
 function flowerFeatures(flowers: Flower[], hive: LatLon): Feature[] {
-  return flowers.map((f) => ({
-    key: f.key,
-    name: `🌼 ${f.plant}`,
-    lat: f.lat,
-    lon: f.lon,
-    distance: distanceMetres(hive, f),
-    dir: bearing(hive, f),
-    confidence: 'observed',
-  }))
+  return flowers.map((f) => makeFeature(f.key, `🌼 ${f.plant}`, f, hive, 'observed'))
 }
 
+// `land` is already distance-filtered by loadForage; only the observed flowers need trimming.
 function mergeFeatures(land: Feature[], flowers: Flower[], hive: LatLon): Feature[] {
-  return [...land, ...flowerFeatures(flowers, hive)].filter((f) => f.distance <= 5000)
+  const observed = flowerFeatures(flowers, hive).filter((f) => f.distance <= 5000)
+  return [...land, ...observed]
 }
 
 interface BeeState {
@@ -74,26 +67,25 @@ interface BeeState {
   biosecurity: BioState
   placingFlower: boolean
   pendingFlower: LatLon | null
+  pendingHive: LatLon | null
   showBeeFlights: boolean
   showMatingRadius: boolean
   showDca: boolean
   dcaCells: DcaCell[]
   dcaStatus: DcaStatus
   status: string
-  mobileView: MobileView
-  flyRequest: { lat: number; lon: number; zoom: number; nonce: number } | null
 
   init: () => void
-  setMobileView: (v: MobileView) => void
   setStatus: (msg: string) => void
   setSeason: (s: Season) => void
   togglePollen: (k: PollenKey) => void
   toggleBeeFlights: () => void
   toggleMatingRadius: () => void
   toggleDca: () => void
-  flyTo: (lat: number, lon: number, zoom: number) => void
-  selectHive: (hive: Hive, focusResults?: boolean) => void
-  addHive: (lat: number, lon: number, name: string) => void
+  selectHive: (hive: Hive) => void
+  requestHiveAt: (lat: number, lon: number) => void
+  saveHive: (name: string) => void
+  cancelHive: () => void
   removeHive: (id: number) => void
   requestFlowerAt: (lat: number, lon: number) => void
   cancelFlower: () => void
@@ -178,18 +170,15 @@ export const useStore = create<BeeState>((set, get) => {
     biosecurity: initialBio,
     placingFlower: false,
     pendingFlower: null,
+    pendingHive: null,
     showBeeFlights: false,
     showMatingRadius: false,
     showDca: false,
     dcaCells: [],
     dcaStatus: 'idle',
     status: '',
-    mobileView: 'map',
-    flyRequest: null,
 
     init: () => set({ hives: loadHives(), flowers: loadFlowers(), myHiveIds: loadMyHiveIds() }),
-
-    setMobileView: (mobileView) => set({ mobileView }),
 
     setStatus: (msg) => set({ status: msg }),
 
@@ -209,35 +198,38 @@ export const useStore = create<BeeState>((set, get) => {
       else if (!on) set({ dcaCells: [], dcaStatus: 'idle' })
     },
 
-    flyTo: (lat, lon, zoom) =>
-      set((s) => ({ flyRequest: { lat, lon, zoom, nonce: (s.flyRequest?.nonce ?? 0) + 1 } })),
-
-    selectHive: (hive, focusResults = false) => {
+    selectHive: (hive) => {
       const token = ++selectionToken
-      // Tapping a hive on the map keeps you on the map (rings + bee flights show
-      // there); only a deliberate add jumps to the Forage results on mobile.
-      set(focusResults ? { activeHive: hive, mobileView: 'results' } : { activeHive: hive })
+      set({ activeHive: hive })
       void loadWeather(hive, token)
       void loadBiosecurity(hive, token)
       void loadForage(hive, token)
     },
 
-    addHive: (lat, lon, name) => {
+    // Adding a hive is a two-step flow like adding a flower: pick the spot, then name it
+    // in the HiveNamePicker modal. requestHiveAt opens the modal; saveHive commits it.
+    requestHiveAt: (lat, lon) => set({ pendingHive: { lat, lon } }),
+
+    cancelHive: () => set({ pendingHive: null }),
+
+    saveHive: (name) => {
+      const pending = get().pendingHive
+      if (!pending) return
       const hives = get().hives
       const id = Math.max(0, ...hives.map((h) => h.id)) + 1
       const hive: Hive = {
         id,
         name: (name.trim() || 'My hive').slice(0, 60),
-        lat,
-        lon,
+        lat: pending.lat,
+        lon: pending.lon,
         createdAt: new Date().toISOString(),
       }
       const nextHives = [...hives, hive]
       const myHiveIds = [...get().myHiveIds, id]
       saveHives(nextHives)
       saveMyHiveIds(myHiveIds)
-      set({ hives: nextHives, myHiveIds, status: 'Hive saved in this browser.' })
-      get().selectHive(hive, true)
+      set({ hives: nextHives, myHiveIds, pendingHive: null, status: 'Hive saved in this browser.' })
+      get().selectHive(hive)
     },
 
     removeHive: (id) => {
@@ -299,6 +291,6 @@ export const useStore = create<BeeState>((set, get) => {
       set({ features: mergeFeatures(get().landFeatures, next, hive) })
     },
 
-    setPlacingFlower: (v) => set(v ? { placingFlower: v, mobileView: 'map' } : { placingFlower: v }),
+    setPlacingFlower: (v) => set({ placingFlower: v }),
   }
 })

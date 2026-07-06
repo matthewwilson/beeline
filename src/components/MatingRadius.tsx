@@ -1,5 +1,6 @@
 import { MATING_RADIUS_KM } from '../data/forage'
 import { useStore } from '../store/useStore'
+import { ToggleSwitch } from './ToggleSwitch'
 import styles from './controls.module.css'
 
 export function MatingRadius() {
@@ -9,18 +10,7 @@ export function MatingRadius() {
 
   return (
     <>
-      <button
-        type="button"
-        className={`btn ${styles.toggle} ${showMatingRadius ? styles.toggleOn : ''}`}
-        role="switch"
-        aria-checked={showMatingRadius}
-        onClick={toggleMatingRadius}
-      >
-        <span className={styles.toggleTrack}>
-          <span className={styles.toggleThumb} />
-        </span>
-        Queen mating flight radius
-      </button>
+      <ToggleSwitch label="Queen mating flight radius" checked={showMatingRadius} onToggle={toggleMatingRadius} />
 
       {showMatingRadius && !activeHive && (
         <p className={`hint ${styles.blockHint}`}>Select a hive to see the queen's mating range.</p>

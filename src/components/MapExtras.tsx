@@ -1,6 +1,7 @@
 import { useStore } from '../store/useStore'
 import { ForageLegend } from './ForageLegend'
 import { PollenSwatches } from './PollenSwatches'
+import { Section } from './Section'
 import { WeatherBox } from './WeatherBox'
 import styles from './mapextras.module.css'
 
@@ -13,23 +14,19 @@ export function MapExtras() {
 
   return (
     <div className={styles.extras}>
-      <section className={styles.block}>
-        <p className={`eyebrow ${styles.blockLabel}`}>Pollen at the entrance</p>
-        <p className={`hint ${styles.blockHint}`}>Seeing a colour on returning bees? Tap it to highlight matching sources.</p>
+      <Section title="Pollen at the entrance" hint="Seeing a colour on returning bees? Tap it to highlight matching sources.">
         <PollenSwatches />
-      </section>
+      </Section>
 
       {activeHive && (
-        <section className={styles.block}>
-          <p className={`eyebrow ${styles.blockLabel}`}>Weather</p>
+        <Section title="Weather">
           <WeatherBox />
-        </section>
+        </Section>
       )}
 
-      <section className={styles.block}>
-        <p className={`eyebrow ${styles.blockLabel}`}>Forage legend</p>
+      <Section title="Forage legend">
         <ForageLegend />
-      </section>
+      </Section>
     </div>
   )
 }

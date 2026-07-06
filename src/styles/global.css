@@ -211,6 +211,39 @@ a:hover {
   -webkit-backdrop-filter: saturate(1.15) blur(12px);
 }
 
+/* Mobile: the side panels become full-screen sheets above the tab bar, revealed by the
+   active tab. Desktop restores each as a floating panel (side offset in the panel's own
+   module). Shared here so the sheet pattern lives in one place. */
+.panel-sheet {
+  position: fixed;
+  inset: 0 0 calc(var(--nav-h) + env(safe-area-inset-bottom)) 0;
+  z-index: var(--z-nav);
+  overflow-y: auto;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  display: none;
+}
+:where([data-mobile-view='controls']) .panel-sheet[data-sheet='controls'],
+:where([data-mobile-view='results']) .panel-sheet[data-sheet='results'] {
+  display: block;
+}
+@media (--desktop) {
+  .panel-sheet {
+    position: absolute;
+    inset: auto;
+    top: 14px;
+    z-index: var(--z-panel);
+    width: 344px;
+    max-width: calc(100vw - 28px);
+    max-height: calc(100dvh - 28px);
+    border-radius: var(--r-lg);
+    border-left: 1px solid var(--comb-line-strong);
+    border-right: 1px solid var(--comb-line-strong);
+    display: block;
+  }
+}
+
 .eyebrow {
   font-family: var(--font-mono);
   font-size: 10.5px;
@@ -261,7 +294,7 @@ a:hover {
 }
 .btn-primary:hover {
   color: var(--ink-deep);
-  background: linear-gradient(180deg, #ffd873, var(--honey-soft));
+  background: linear-gradient(180deg, var(--honey-bright), var(--honey-soft));
   border-color: var(--honey);
 }
 

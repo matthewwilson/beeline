@@ -1,5 +1,6 @@
 import { BANDS } from '../lib/beeFlights'
 import { useStore } from '../store/useStore'
+import { ToggleSwitch } from './ToggleSwitch'
 import styles from './controls.module.css'
 
 export function BeeFlights() {
@@ -9,18 +10,7 @@ export function BeeFlights() {
 
   return (
     <>
-      <button
-        type="button"
-        className={`btn ${styles.toggle} ${showBeeFlights ? styles.toggleOn : ''}`}
-        role="switch"
-        aria-checked={showBeeFlights}
-        onClick={toggleBeeFlights}
-      >
-        <span className={styles.toggleTrack}>
-          <span className={styles.toggleThumb} />
-        </span>
-        Animate foraging flights
-      </button>
+      <ToggleSwitch label="Animate foraging flights" checked={showBeeFlights} onToggle={toggleBeeFlights} />
 
       {showBeeFlights && !activeHive && (
         <p className={`hint ${styles.blockHint}`}>Select a hive to watch its bees fly.</p>

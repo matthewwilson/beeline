@@ -11,6 +11,7 @@
 
   --honey: #f6a800;
   --honey-soft: #ffce5b;
+  --honey-bright: #ffd873;
   --amber: #c47f00;
 
   --wax: #f3e7cc;
@@ -23,6 +24,7 @@
   --fly-good: #86c661;
   --fly-marg: #ecb73a;
   --fly-bad: #e4693b;
+  --gap-soft: #f0a35a;
   --surveyed: #86c661;
   --alert: #e4693b;
 
@@ -38,7 +40,28 @@
   --r-lg: 18px;
   --r-pill: 999px;
 
-  --space: 8px;
+  /* Spacing scale (4px base). */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+
+  /* Standard transition timing (respects the reduced-motion override in global.css). */
+  --transition: 0.14s ease;
+
+  /* Height of the mobile bottom tab bar (excludes the safe-area inset added on top). */
+  --nav-h: 56px;
+
+  /* z-index ladder: map sits behind, then floating panels, mobile nav, then overlays. */
+  --z-map: 0;
+  --z-panel: 1000;
+  --z-nav: 1100;
+  --z-overlay: 1200;
+
+  /* Hairline dark borders/insets drawn over bright swatches and fills. */
+  --edge-dark: rgba(0, 0, 0, 0.35);
+  --edge-inset: rgba(0, 0, 0, 0.3);
 
   --shadow: 0 14px 44px rgba(0, 0, 0, 0.48);
   --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.38);

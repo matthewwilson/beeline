@@ -6,17 +6,24 @@ import { DcaPanel } from './DcaPanel'
 import { ForageLegend } from './ForageLegend'
 import { MatingRadius } from './MatingRadius'
 import { PollenSwatches } from './PollenSwatches'
+import { Section } from './Section'
 import { SeasonSelect } from './SeasonSelect'
 import { WeatherBox } from './WeatherBox'
 import styles from './controls.module.css'
 
-export function ControlsPanel() {
+interface ControlsPanelProps {
+  // On desktop this panel also carries the add actions and the weather/pollen/legend
+  // sections; on mobile those live in the map's add FAB and the map-extras panel instead.
+  isDesktop: boolean
+}
+
+export function ControlsPanel({ isDesktop }: ControlsPanelProps) {
   const activeHive = useStore((s) => s.activeHive)
   const status = useStore((s) => s.status)
   const { photoInput, addHiveHere, addFlower, pickPhoto, onPhotoChosen } = useAddForage()
 
   return (
-    <aside className={`panel scroll-warm ${styles.controls}`}>
+    <aside className={`panel scroll-warm panel-sheet ${styles.controls}`} data-sheet="controls">
       <header className={styles.header}>
         <h1 className={`wordmark ${styles.title}`}>BeeLine</h1>
         <p className={styles.tagline}>bee forage map</p>
@@ -26,67 +33,68 @@ export function ControlsPanel() {
         flower sightings are saved on this device.
       </p>
 
-      <div className={styles.addRow}>
-        <button type="button" className="btn btn-primary" onClick={addHiveHere}>
-          Add a hive
-        </button>
-        <button type="button" className="btn" onClick={addFlower}>
-          Add a flower
-        </button>
-        <button type="button" className="btn" onClick={pickPhoto}>
-          Add a flower from a photo
-        </button>
-        <input
-          ref={photoInput}
-          className={styles.photoInput}
-          type="file"
-          accept="image/*"
-          onChange={onPhotoChosen}
-        />
-      </div>
-      <p className={`hint ${styles.addHint}`}>
-        Or tap the map to drop a hive. Add a flower to log real forage where you’re standing — it sharpens nearby
-        predictions. A geotagged photo drops the flower where it was taken, then you pick the plant.
-      </p>
+      {isDesktop && (
+        <>
+          <div className={styles.addRow}>
+            <button type="button" className="btn btn-primary" onClick={addHiveHere}>
+              Add a hive
+            </button>
+            <button type="button" className="btn" onClick={addFlower}>
+              Add a flower
+            </button>
+            <button type="button" className="btn" onClick={pickPhoto}>
+              Add a flower from a photo
+            </button>
+            <input
+              ref={photoInput}
+              className={styles.photoInput}
+              type="file"
+              accept="image/*"
+              onChange={onPhotoChosen}
+            />
+          </div>
+          <p className={`hint ${styles.addHint}`}>
+            Or tap the map to drop a hive. Add a flower to log real forage where you’re standing — it sharpens nearby
+            predictions. A geotagged photo drops the flower where it was taken, then you pick the plant.
+          </p>
+        </>
+      )}
       {status && <p className={styles.status}>{status}</p>}
 
-      {activeHive && (
-        <div className={styles.desktopOnly}>
+      {isDesktop && activeHive && (
+        <>
           <div className={styles.sep} />
           <WeatherBox />
-        </div>
+        </>
       )}
 
-      <section className={styles.block}>
-        <p className={`eyebrow ${styles.blockLabel}`}>Season</p>
+      <Section title="Season">
         <SeasonSelect />
-      </section>
+      </Section>
 
-      <section className={`${styles.block} ${styles.desktopOnly}`}>
-        <p className={`eyebrow ${styles.blockLabel}`}>Pollen at the entrance</p>
-        <p className={`hint ${styles.blockHint}`}>Seeing a colour on returning bees? Tap it to highlight matching sources.</p>
-        <PollenSwatches />
-      </section>
+      {isDesktop && (
+        <Section title="Pollen at the entrance" hint="Seeing a colour on returning bees? Tap it to highlight matching sources.">
+          <PollenSwatches />
+        </Section>
+      )}
 
-      <section className={styles.block}>
-        <p className={`eyebrow ${styles.blockLabel}`}>Foraging flights by age</p>
+      <Section title="Foraging flights by age">
         <BeeFlights />
-      </section>
+      </Section>
 
-      <section className={styles.block}>
-        <p className={`eyebrow ${styles.blockLabel}`}>Queen mating flight</p>
+      <Section title="Queen mating flight">
         <MatingRadius />
-      </section>
+      </Section>
 
-      <section className={styles.block}>
-        <p className={`eyebrow ${styles.blockLabel}`}>Drone congregation areas</p>
+      <Section title="Drone congregation areas">
         <DcaPanel />
-      </section>
+      </Section>
 
-      <section className={`${styles.block} ${styles.desktopOnly}`}>
-        <p className={`eyebrow ${styles.blockLabel}`}>Forage legend</p>
-        <ForageLegend />
-      </section>
+      {isDesktop && (
+        <Section title="Forage legend">
+          <ForageLegend />
+        </Section>
+      )}
 
       <Credits />
     </aside>

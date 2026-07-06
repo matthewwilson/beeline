@@ -1,3 +1,4 @@
+import { fetchJson } from './http'
 import type { LatLon } from '../types'
 
 // Open-Meteo Elevation API (keyless, CORS `*`, same host as weather.ts). Backed by
@@ -8,25 +9,21 @@ const MAX_PER_REQUEST = 100
 
 export async function fetchElevations(points: LatLon[]): Promise<number[] | null> {
   if (points.length === 0) return []
-  try {
-    const chunks: number[][] = []
-    for (let i = 0; i < points.length; i += MAX_PER_REQUEST) {
-      chunks.push(await fetchChunk(points.slice(i, i + MAX_PER_REQUEST)))
-    }
-    return chunks.flat()
-  } catch {
-    return null
+  const chunks: number[][] = []
+  for (let i = 0; i < points.length; i += MAX_PER_REQUEST) {
+    const chunk = await fetchChunk(points.slice(i, i + MAX_PER_REQUEST))
+    if (chunk === null) return null
+    chunks.push(chunk)
   }
+  return chunks.flat()
 }
 
-async function fetchChunk(points: LatLon[]): Promise<number[]> {
+async function fetchChunk(points: LatLon[]): Promise<number[] | null> {
   const lats = points.map((p) => p.lat.toFixed(5)).join(',')
   const lons = points.map((p) => p.lon.toFixed(5)).join(',')
   const url = `https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lons}`
-  const res = await fetch(url, { signal: AbortSignal.timeout(15000) })
-  if (!res.ok) throw new Error('status ' + res.status)
-  const data = await res.json()
-  const elevation = data.elevation as number[] | undefined
-  if (!elevation || elevation.length !== points.length) throw new Error('bad elevation response')
+  const data = await fetchJson<{ elevation?: number[] }>(url, { timeoutMs: 15000 })
+  const elevation = data?.elevation
+  if (!elevation || elevation.length !== points.length) return null
   return elevation
 }

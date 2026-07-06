@@ -25,12 +25,14 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@csstools/postcss-global-data": "^4.0.0",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "png-to-ico": "^3.0.1",
+    "postcss-custom-media": "^12.0.1",
     "sharp": "^0.35.3",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
