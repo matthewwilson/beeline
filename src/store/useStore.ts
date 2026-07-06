@@ -6,7 +6,7 @@ import { expectedGdd } from '../lib/scoring'
 import { fetchOverpass, overpassToFeatures } from '../services/overpass'
 import { fetchHabitats } from '../services/habitats'
 import { fetchElevations } from '../services/elevation'
-import { fetchCurrentWeather, fetchGddTotal } from '../services/weather'
+import { fetchCurrentWeather, fetchDailyForecast, fetchGddTotal } from '../services/weather'
 import { fetchHornetCount } from '../services/nbn'
 import {
   loadFlowers,
@@ -16,7 +16,7 @@ import {
   saveHives,
   saveMyHiveIds,
 } from '../storage'
-import type { CurrentWeather, Feature, Flower, ForageKey, Hive, LatLon, PollenKey, Season } from '../types'
+import type { CurrentWeather, DailyForecast, Feature, Flower, ForageKey, Hive, LatLon, PollenKey, Season } from '../types'
 
 export type ForageStatus = 'idle' | 'scanning' | 'busy' | 'empty' | 'ready'
 
@@ -26,6 +26,7 @@ export type DcaStatus = 'idle' | 'loading' | 'ready' | 'partial'
 
 interface WeatherState {
   current: CurrentWeather | null
+  forecast: DailyForecast[] | null
   gddTotal: number | null
   gddOffsetDays: number
   loading: boolean
@@ -37,7 +38,13 @@ interface BioState {
   failed: boolean
 }
 
-const initialWeather: WeatherState = { current: null, gddTotal: null, gddOffsetDays: 0, loading: false }
+const initialWeather: WeatherState = {
+  current: null,
+  forecast: null,
+  gddTotal: null,
+  gddOffsetDays: 0,
+  loading: false,
+}
 const initialBio: BioState = { loading: false, hornetCount: null, failed: false }
 
 // Guards against stale async results when the user switches hives mid-fetch.
@@ -96,7 +103,14 @@ interface BeeState {
 
 export const useStore = create<BeeState>((set, get) => {
   async function loadWeather(hive: Hive, token: number) {
-    set((s) => ({ weather: { ...s.weather, loading: true, current: null } }))
+    set((s) => ({ weather: { ...s.weather, loading: true, current: null, forecast: null } }))
+
+    // The week-ahead strip and the current conditions are independent; fetch them in parallel.
+    void fetchDailyForecast(hive.lat, hive.lon).then((forecast) => {
+      if (token !== selectionToken || !forecast) return
+      set((s) => ({ weather: { ...s.weather, forecast } }))
+    })
+
     const current = await fetchCurrentWeather(hive.lat, hive.lon)
     if (token !== selectionToken) return
     set((s) => ({ weather: { ...s.weather, current, loading: false } }))

@@ -1,17 +1,35 @@
-import { flyVerdict, seasonPhrase } from '../lib/weather'
-import type { FlyClass } from '../lib/weather'
+import { dayFlyVerdict, flyVerdict, seasonPhrase, VERDICT_COLOUR } from '../lib/weather'
 import { useStore } from '../store/useStore'
+import type { DailyForecast } from '../types'
 import styles from './controls.module.css'
 
-const VERDICT_COLOUR: Record<FlyClass, string> = {
-  good: 'var(--fly-good)',
-  marg: 'var(--fly-marg)',
-  bad: 'var(--fly-bad)',
-  none: 'var(--wax-dim)',
+// Weekday initial from an ISO date (YYYY-MM-DD), read in local time.
+const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+function weekdayInitial(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  return WEEKDAYS[new Date(y, m - 1, d).getDay()]
+}
+
+function ForecastStrip({ forecast }: { forecast: DailyForecast[] }) {
+  return (
+    <div className={styles.forecast}>
+      {forecast.map((day) => {
+        const verdict = dayFlyVerdict(day)
+        const colour = VERDICT_COLOUR[verdict.cls]
+        return (
+          <div key={day.date} className={styles.forecastDay} title={`${verdict.txt} · ${Math.round(day.tempMax)}°C`}>
+            <span className={styles.forecastLab}>{weekdayInitial(day.date)}</span>
+            <span className={styles.forecastDot} style={{ background: colour }} />
+            <span className={styles.forecastTemp}>{Math.round(day.tempMax)}°</span>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 export function WeatherBox() {
-  const { current, gddTotal, gddOffsetDays, loading } = useStore((s) => s.weather)
+  const { current, forecast, gddTotal, gddOffsetDays, loading } = useStore((s) => s.weather)
   const season = useStore((s) => s.season)
 
   const verdict = flyVerdict(current)
@@ -29,6 +47,7 @@ export function WeatherBox() {
           {current.precipitation > 0 ? `${current.precipitation} mm rain` : 'dry'}
         </div>
       )}
+      {forecast && forecast.length > 0 && <ForecastStrip forecast={forecast} />}
       {season === 'auto' && gddTotal != null && (
         <div className={styles.weatherBloom}>
           Auto season from live weather · growing season {seasonPhrase(gddOffsetDays)} · {gddTotal} GDD so far

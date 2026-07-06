@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchCurrentWeather, fetchGddTotal } from './weather'
+import { fetchCurrentWeather, fetchDailyForecast, fetchGddTotal } from './weather'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -22,6 +22,43 @@ describe('fetchCurrentWeather', () => {
   it('returns null on an HTTP error', async () => {
     stubJson({}, 503)
     expect(await fetchCurrentWeather(54, -6)).toBeNull()
+  })
+})
+
+describe('fetchDailyForecast', () => {
+  it('maps the parallel daily arrays into per-day objects', async () => {
+    stubJson({
+      daily: {
+        time: ['2026-07-06', '2026-07-07'],
+        temperature_2m_max: [18, 15],
+        wind_speed_10m_max: [12, 30],
+        precipitation_sum: [0, 3.2],
+      },
+    })
+    expect(await fetchDailyForecast(54, -6)).toEqual([
+      { date: '2026-07-06', tempMax: 18, windMax: 12, precip: 0 },
+      { date: '2026-07-07', tempMax: 15, windMax: 30, precip: 3.2 },
+    ])
+  })
+
+  it('skips days missing a max temperature and defaults absent wind/precip to 0', async () => {
+    stubJson({
+      daily: {
+        time: ['2026-07-06', '2026-07-07'],
+        temperature_2m_max: [null, 15],
+      },
+    })
+    expect(await fetchDailyForecast(54, -6)).toEqual([{ date: '2026-07-07', tempMax: 15, windMax: 0, precip: 0 }])
+  })
+
+  it('returns null when there is no daily block', async () => {
+    stubJson({})
+    expect(await fetchDailyForecast(54, -6)).toBeNull()
+  })
+
+  it('returns null on an HTTP error', async () => {
+    stubJson({}, 500)
+    expect(await fetchDailyForecast(54, -6)).toBeNull()
   })
 })
 

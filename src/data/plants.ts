@@ -40,6 +40,7 @@ export interface GapPlant {
 }
 
 // Gap-filling pollinator plants (AIPP / RHS Plants for Pollinators), by flowering month (1-12).
+// Covers both the classic June gap and the later autumn dearth (ivy onward).
 export const GAP_PLANTS: GapPlant[] = [
   { name: 'Phacelia', months: [6, 7, 8, 9] },
   { name: 'Borage', months: [6, 7, 8, 9] },
@@ -51,4 +52,7 @@ export const GAP_PLANTS: GapPlant[] = [
   { name: 'Lime tree', months: [6, 7] },
   { name: 'Foxglove', months: [6, 7] },
   { name: 'Poppy', months: [6, 7] },
+  { name: 'Ivy', months: [9, 10] },
+  { name: 'Michaelmas daisy', months: [9, 10] },
+  { name: 'Sedum', months: [8, 9] },
 ]

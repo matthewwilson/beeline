@@ -1,11 +1,39 @@
 import { fetchJson } from './http'
-import type { CurrentWeather } from '../types'
+import type { CurrentWeather, DailyForecast } from '../types'
 
 // Open-Meteo (keyless, CORS `*`).
 export async function fetchCurrentWeather(lat: number, lon: number): Promise<CurrentWeather | null> {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m,precipitation&timezone=auto`
   const data = await fetchJson<{ current?: CurrentWeather }>(url)
   return data?.current ?? null
+}
+
+interface DailyBlock {
+  time?: string[]
+  temperature_2m_max?: Array<number | null>
+  wind_speed_10m_max?: Array<number | null>
+  precipitation_sum?: Array<number | null>
+}
+
+// Next 7 days of daily maxima for the "will the bees fly this week?" strip. Returns null on
+// failure; skips any day missing its temperature (Open-Meteo pads arrays with nulls).
+export async function fetchDailyForecast(lat: number, lon: number): Promise<DailyForecast[] | null> {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,wind_speed_10m_max,precipitation_sum&forecast_days=7&timezone=auto`
+  const data = await fetchJson<{ daily?: DailyBlock }>(url)
+  const d = data?.daily
+  if (!d?.time) return null
+  const out: DailyForecast[] = []
+  d.time.forEach((date, i) => {
+    const tempMax = d.temperature_2m_max?.[i]
+    if (tempMax == null) return
+    out.push({
+      date,
+      tempMax,
+      windMax: d.wind_speed_10m_max?.[i] ?? 0,
+      precip: d.precipitation_sum?.[i] ?? 0,
+    })
+  })
+  return out
 }
 
 // Cumulative growing-degree-days (base 5C) for the year to date. Returns null if the fetch

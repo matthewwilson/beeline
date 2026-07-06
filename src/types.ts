@@ -67,3 +67,10 @@ export interface CurrentWeather {
   wind_speed_10m: number
   precipitation: number
 }
+
+export interface DailyForecast {
+  date: string
+  tempMax: number
+  windMax: number
+  precip: number
+}
