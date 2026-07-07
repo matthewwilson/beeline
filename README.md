@@ -5,7 +5,7 @@ where your bees are most likely foraging — because you can't GPS-track them, b
 foraging is well understood (mostly within 1–2 km of the hive, out to ~5 km, favouring the
 richest nectar/pollen sources closest to home).
 
-**Live site:** https://matthewwilson.github.io/beeline/ — installable as an app (PWA).
+**Live site:** https://beeline.joyfulhoney.co.uk/ — installable as an app (PWA).
 
 ## Features
 - **Forage & bloom map** — draws the 1 / 3 / 5 km foraging rings, pulls the real green spaces
@@ -48,7 +48,7 @@ Requires Node 20.19+ or 22+.
 
 ```bash
 npm install
-npm run dev       # dev server (http://localhost:5173/beeline/)
+npm run dev       # dev server (http://localhost:5173/)
 npm run build     # type-check + production build to dist/
 npm run preview   # serve the built dist/ locally
 npm test          # unit tests (geo / scoring / calendar)
@@ -60,8 +60,8 @@ Geolocation ("Add a hive/flower") needs a secure context, which `localhost` prov
 ## Deploying to GitHub Pages
 Pages is configured to build from **GitHub Actions** (`.github/workflows/deploy.yml`). Every push to
 `main` runs `npm ci && npm run build` and publishes `dist/` to
-`https://<user>.github.io/beeline/`. The Vite `base` is `/beeline/`, threaded through the PWA
-manifest and service-worker scope.
+`https://beeline.joyfulhoney.co.uk/`. The Vite `base` is `/`, threaded through the PWA manifest
+and service-worker scope.
 
 > If a deploy fails, push a fresh commit — do **not** re-run the same workflow/SHA (re-runs
 > duplicate the Pages artifact and the deploy wedges on the failed SHA).

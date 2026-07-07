@@ -3,7 +3,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-const BASE_PATH = '/beeline/'
+const BASE_PATH = '/'
 
 export default defineConfig({
   base: BASE_PATH,
