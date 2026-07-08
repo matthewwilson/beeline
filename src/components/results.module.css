@@ -52,6 +52,33 @@
   padding: 10px 0;
 }
 
+.confidenceSummary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 2px 0 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--wax-faint);
+}
+
+.confidenceSummary span {
+  color: var(--wax-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.confidenceSummary b {
+  border: 1px solid var(--comb-line);
+  border-radius: var(--r-pill);
+  padding: 3px 7px;
+  background: var(--propolis);
+  color: var(--honey-soft);
+  font-weight: 500;
+}
+
 /* ---- Signature: the honeycomb comb-fill destination ledger ---- */
 .list {
   list-style: none;

@@ -7,7 +7,7 @@ import { foragePlantByName } from '../data/plants'
 import { fetchOverpass, overpassToFeatures } from '../services/overpass'
 import { fetchHabitats } from '../services/habitats'
 import { fetchElevations } from '../services/elevation'
-import { fetchCurrentWeather, fetchDailyForecast, fetchGrowingDegreeDaysTotal } from '../services/weather'
+import { fetchCurrentWeather, fetchDailyForecast, fetchGrowingDegreeDaysTotal, fetchHourlyForecast } from '../services/weather'
 import { fetchHornetCount } from '../services/nationalBiodiversityNetwork'
 import {
   loadFlowers,
@@ -17,7 +17,7 @@ import {
   saveHives,
   saveMyHiveIds,
 } from '../storage'
-import type { CurrentWeather, DailyForecast, Feature, Flower, ForageKey, Hive, LatLon, PollenKey, Season } from '../types'
+import type { CurrentWeather, DailyForecast, Feature, Flower, ForageKey, Hive, HourlyWeather, LatLon, PollenKey, Season } from '../types'
 
 export type ForageStatus = 'idle' | 'scanning' | 'busy' | 'empty' | 'ready'
 
@@ -28,6 +28,7 @@ export type DroneCongregationAreaStatus = 'idle' | 'loading' | 'ready' | 'partia
 interface WeatherState {
   current: CurrentWeather | null
   forecast: DailyForecast[] | null
+  hourly: HourlyWeather[] | null
   growingDegreeDaysTotal: number | null
   growingDegreeDaysOffsetDays: number
   loading: boolean
@@ -42,6 +43,7 @@ interface BioState {
 const initialWeather: WeatherState = {
   current: null,
   forecast: null,
+  hourly: null,
   growingDegreeDaysTotal: null,
   growingDegreeDaysOffsetDays: 0,
   loading: false,
@@ -102,6 +104,7 @@ interface BeeState {
   placingFlower: boolean
   pendingFlower: LatLon | null
   pendingHive: LatLon | null
+  showConfidenceLayer: boolean
   showBeeFlights: boolean
   showMatingRadius: boolean
   showDroneCongregationArea: boolean
@@ -113,6 +116,7 @@ interface BeeState {
   setStatus: (msg: string) => void
   setSeason: (s: Season) => void
   togglePollen: (k: PollenKey) => void
+  toggleConfidenceLayer: () => void
   toggleBeeFlights: () => void
   toggleMatingRadius: () => void
   toggleDroneCongregationArea: () => void
@@ -130,16 +134,22 @@ interface BeeState {
 
 export const useStore = create<BeeState>((set, get) => {
   async function loadWeather(hive: Hive, token: number) {
-    set((s) => ({ weather: { ...s.weather, loading: true, current: null, forecast: null } }))
+    set((s) => ({ weather: { ...s.weather, loading: true, current: null, forecast: null, hourly: null } }))
 
     // Weather calls are independent, so start them together and commit each result as it lands.
     const forecastPromise = fetchDailyForecast(hive.lat, hive.lon)
+    const hourlyPromise = fetchHourlyForecast(hive.lat, hive.lon)
     const currentPromise = fetchCurrentWeather(hive.lat, hive.lon)
     const growingDegreeDaysPromise = fetchGrowingDegreeDaysTotal(hive.lat, hive.lon)
 
     void forecastPromise.then((forecast) => {
       if (token !== selectionToken || !forecast) return
       set((s) => ({ weather: { ...s.weather, forecast } }))
+    })
+
+    void hourlyPromise.then((hourly) => {
+      if (token !== selectionToken || !hourly) return
+      set((s) => ({ weather: { ...s.weather, hourly } }))
     })
 
     const current = await currentPromise
@@ -223,6 +233,7 @@ export const useStore = create<BeeState>((set, get) => {
     placingFlower: false,
     pendingFlower: null,
     pendingHive: null,
+    showConfidenceLayer: false,
     showBeeFlights: false,
     showMatingRadius: false,
     showDroneCongregationArea: false,
@@ -237,6 +248,8 @@ export const useStore = create<BeeState>((set, get) => {
     setSeason: (season) => set({ season }),
 
     togglePollen: (k) => set((s) => ({ selectedPollen: s.selectedPollen === k ? null : k })),
+
+    toggleConfidenceLayer: () => set((s) => ({ showConfidenceLayer: !s.showConfidenceLayer })),
 
     toggleBeeFlights: () => set((s) => ({ showBeeFlights: !s.showBeeFlights })),
 

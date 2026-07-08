@@ -85,3 +85,10 @@ export interface DailyForecast {
   windMax: number
   precip: number
 }
+
+export interface HourlyWeather {
+  time: string
+  temperature: number
+  windSpeed: number
+  precipitation: number
+}

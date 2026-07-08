@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchCurrentWeather, fetchDailyForecast, fetchGrowingDegreeDaysTotal } from './weather'
+import { fetchCurrentWeather, fetchDailyForecast, fetchGrowingDegreeDaysTotal, fetchHourlyForecast } from './weather'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -59,6 +59,42 @@ describe('fetchDailyForecast', () => {
   it('returns null on an HTTP error', async () => {
     stubJson({}, 500)
     expect(await fetchDailyForecast(54, -6)).toBeNull()
+  })
+})
+
+describe('fetchHourlyForecast', () => {
+  it('maps the parallel hourly arrays into per-hour objects', async () => {
+    stubJson({
+      hourly: {
+        time: ['2026-07-07T09:00', '2026-07-07T10:00'],
+        temperature_2m: [12, 15],
+        wind_speed_10m: [8, 12],
+        precipitation: [0, 0.1],
+      },
+    })
+    expect(await fetchHourlyForecast(54, -6)).toEqual([
+      { time: '2026-07-07T09:00', temperature: 12, windSpeed: 8, precipitation: 0 },
+      { time: '2026-07-07T10:00', temperature: 15, windSpeed: 12, precipitation: 0.1 },
+    ])
+  })
+
+  it('skips incomplete hourly rows', async () => {
+    stubJson({
+      hourly: {
+        time: ['2026-07-07T09:00', '2026-07-07T10:00'],
+        temperature_2m: [12, null],
+        wind_speed_10m: [8, 12],
+        precipitation: [0, 0],
+      },
+    })
+    expect(await fetchHourlyForecast(54, -6)).toEqual([
+      { time: '2026-07-07T09:00', temperature: 12, windSpeed: 8, precipitation: 0 },
+    ])
+  })
+
+  it('returns null when there is no hourly block', async () => {
+    stubJson({})
+    expect(await fetchHourlyForecast(54, -6)).toBeNull()
   })
 })
 
