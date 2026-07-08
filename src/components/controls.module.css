@@ -102,6 +102,56 @@
   line-height: 1.45;
 }
 
+.flightEnvelope {
+  margin-top: 8px;
+  border-top: 1px dashed var(--comb-line);
+  padding-top: 8px;
+}
+
+.flightEnvelopeTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--wax-faint);
+}
+
+.flightEnvelopeTop span:first-child {
+  color: var(--wax-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.hourlyRail {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(7px, 1fr));
+  gap: 3px;
+  margin-top: 7px;
+  padding-bottom: 12px;
+}
+
+.hourTick {
+  position: relative;
+  display: block;
+  height: 18px;
+  border-radius: 3px;
+  opacity: 0.78;
+  box-shadow: 0 0 7px -2px currentColor;
+}
+
+.hourTick::after {
+  content: attr(data-labelled);
+  position: absolute;
+  left: 50%;
+  top: 21px;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--wax-faint);
+}
+
 .forecast {
   display: flex;
   justify-content: space-between;
@@ -200,6 +250,14 @@
   margin-top: 2px;
   border: 1px solid rgba(0, 0, 0, 0.35);
   box-shadow: 0 0 6px 1px currentColor;
+}
+.confidenceGlyph {
+  width: 15px;
+  height: 15px;
+  border: 2px dashed var(--wax-dim);
+  border-radius: 50%;
+  margin-top: 1px;
+  box-shadow: 0 0 7px -1px currentColor;
 }
 .bandText {
   font-size: 12px;

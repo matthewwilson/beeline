@@ -1,10 +1,16 @@
-import type { CurrentWeather, DailyForecast } from '../types'
+import type { CurrentWeather, DailyForecast, HourlyWeather } from '../types'
 
 export type FlyClass = 'good' | 'marg' | 'bad' | 'none'
 
 export interface FlyVerdict {
   txt: string
   cls: FlyClass
+}
+
+export interface FlightWindow {
+  start: string
+  end: string
+  cls: Exclude<FlyClass, 'bad' | 'none'>
 }
 
 // Shared verdict → colour token, used by the current-weather box and the 7-day strip.
@@ -23,6 +29,45 @@ export function flyVerdict(w: CurrentWeather | null): FlyVerdict {
   if (t >= 13 && wind < 25 && p === 0) return { txt: 'Good foraging weather', cls: 'good' }
   if (t >= 10 && p < 0.3 && wind < 35) return { txt: 'Some foragers out', cls: 'marg' }
   return { txt: 'Bees are staying home', cls: 'bad' }
+}
+
+export function hourFlyVerdict(hour: HourlyWeather): FlyVerdict {
+  const { temperature: t, windSpeed: wind, precipitation: p } = hour
+  if (t >= 13 && wind < 25 && p === 0) return { txt: 'Good flight hour', cls: 'good' }
+  if (t >= 10 && p < 0.3 && wind < 35) return { txt: 'Marginal flight hour', cls: 'marg' }
+  return { txt: 'Grounded hour', cls: 'bad' }
+}
+
+export function flightAvailabilityFactor(cls: FlyClass): number {
+  if (cls === 'good') return 1
+  if (cls === 'marg') return 0.55
+  if (cls === 'bad') return 0.16
+  return 1
+}
+
+export function flightWindows(hours: HourlyWeather[]): FlightWindow[] {
+  const windows: FlightWindow[] = []
+  let active: FlightWindow | null = null
+
+  for (const hour of hours) {
+    const cls = hourFlyVerdict(hour).cls
+    if (cls !== 'good' && cls !== 'marg') {
+      if (active) {
+        active = null
+      }
+      continue
+    }
+
+    if (!active || active.cls !== cls) {
+      active = { start: hour.time, end: hour.time, cls }
+      windows.push(active)
+      continue
+    }
+
+    active.end = hour.time
+  }
+
+  return windows
 }
 
 // Same rule of thumb as flyVerdict, but read off a day's forecast maxima rather than current

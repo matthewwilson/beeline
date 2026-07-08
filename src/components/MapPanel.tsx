@@ -1,6 +1,7 @@
 import { useStore } from '../store/useStore'
 import { useAddForage } from '../lib/useAddForage'
 import { BeeFlights } from './BeeFlights'
+import { ConfidenceLayer } from './ConfidenceLayer'
 import { DroneCongregationAreaPanel } from './DroneCongregationAreaPanel'
 import { ForageLegend } from './ForageLegend'
 import { MatingRadius } from './MatingRadius'
@@ -75,6 +76,7 @@ export function MapPanel({ isDesktop, className = '', id }: MapPanelProps) {
 
       <Section title="Map layers">
         <div className={styles.layerStack}>
+          <ConfidenceLayer />
           <BeeFlights />
           <MatingRadius />
           <DroneCongregationAreaPanel />

@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchOverpass, overpassToFeatures } from '../services/overpass'
 import { fetchHabitats } from '../services/habitats'
 import { fetchElevations } from '../services/elevation'
-import { fetchDailyForecast } from '../services/weather'
+import { fetchDailyForecast, fetchHourlyForecast } from '../services/weather'
 import { useStore } from './useStore'
-import type { DailyForecast, Feature, Hive } from '../types'
+import type { DailyForecast, Feature, Hive, HourlyWeather } from '../types'
 
 // The store orchestrates the service layer; mock it so the tests drive resolution timing
 // and stay offline.
@@ -16,6 +16,7 @@ vi.mock('../services/habitats', () => ({ fetchHabitats: vi.fn(async () => [] as 
 vi.mock('../services/weather', () => ({
   fetchCurrentWeather: vi.fn(async () => null),
   fetchDailyForecast: vi.fn(async () => null),
+  fetchHourlyForecast: vi.fn(async () => null),
   fetchGrowingDegreeDaysTotal: vi.fn(async () => null),
 }))
 vi.mock('../services/nationalBiodiversityNetwork', () => ({ fetchHornetCount: vi.fn(async () => null) }))
@@ -52,6 +53,15 @@ beforeEach(() => {
     features: [],
     flowers: [],
     forageStatus: 'idle',
+    weather: {
+      current: null,
+      forecast: null,
+      hourly: null,
+      growingDegreeDaysTotal: null,
+      growingDegreeDaysOffsetDays: 0,
+      loading: false,
+    },
+    showConfidenceLayer: false,
     showDroneCongregationArea: false,
     droneCongregationAreaCells: [],
     droneCongregationAreaStatus: 'idle',
@@ -126,6 +136,40 @@ describe('weather forecast', () => {
     await flush()
 
     expect(useStore.getState().weather.forecast).toEqual([])
+  })
+
+  it('stores a fresh hourly flight forecast for the active hive', async () => {
+    const hourly: HourlyWeather[] = [{ time: '2026-07-07T10:00', temperature: 15, windSpeed: 10, precipitation: 0 }]
+    vi.mocked(fetchHourlyForecast).mockResolvedValueOnce(hourly)
+
+    useStore.getState().selectHive(hiveA)
+    await flush()
+
+    expect(useStore.getState().weather.hourly).toEqual(hourly)
+  })
+
+  it('ignores a slow hourly forecast for a hive that is no longer active', async () => {
+    const slow = deferred<HourlyWeather[]>()
+    vi.mocked(fetchHourlyForecast).mockReturnValueOnce(slow.promise).mockResolvedValueOnce([])
+
+    useStore.getState().selectHive(hiveA)
+    useStore.getState().selectHive(hiveB)
+    await flush()
+
+    slow.resolve([{ time: '2026-07-07T10:00', temperature: 15, windSpeed: 10, precipitation: 0 }])
+    await flush()
+
+    expect(useStore.getState().weather.hourly).toEqual([])
+  })
+})
+
+describe('map layer toggles', () => {
+  it('toggles the confidence layer independently', () => {
+    expect(useStore.getState().showConfidenceLayer).toBe(false)
+    useStore.getState().toggleConfidenceLayer()
+    expect(useStore.getState().showConfidenceLayer).toBe(true)
+    useStore.getState().toggleConfidenceLayer()
+    expect(useStore.getState().showConfidenceLayer).toBe(false)
   })
 })
 

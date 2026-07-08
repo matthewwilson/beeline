@@ -4,9 +4,11 @@ import { FORAGE, MATING_RADIUS_KILOMETRES, MAX_MARKERS, RING_KILOMETRES } from '
 import { POLLEN, pollenColour } from '../data/pollen'
 import { createBees, stepBee } from '../lib/beeFlights'
 import type { Bee } from '../lib/beeFlights'
+import { confidenceDisplay } from '../lib/confidence'
 import { cellFactorRows, DEFAULT_STEP_METRES } from '../lib/droneCongregationArea'
 import { clamp, escapeMarkup, formatDistance, offsetLatLon } from '../lib/geo'
 import { useScoredFeatures } from '../lib/useScoredFeatures'
+import { flightAvailabilityFactor, flyVerdict } from '../lib/weather'
 import { useStore } from '../store/useStore'
 import { useUiStore } from '../store/useUiStore'
 import type { LatLon } from '../types'
@@ -93,11 +95,13 @@ export function MapView() {
   const flowers = useStore((s) => s.flowers)
   const activeHive = useStore((s) => s.activeHive)
   const selectedPollen = useStore((s) => s.selectedPollen)
+  const showConfidenceLayer = useStore((s) => s.showConfidenceLayer)
   const showBeeFlights = useStore((s) => s.showBeeFlights)
   const showMatingRadius = useStore((s) => s.showMatingRadius)
   const showDroneCongregationArea = useStore((s) => s.showDroneCongregationArea)
   const droneCongregationAreaCells = useStore((s) => s.droneCongregationAreaCells)
   const droneCongregationAreaStatus = useStore((s) => s.droneCongregationAreaStatus)
+  const currentWeather = useStore((s) => s.weather.current)
   const flyRequest = useUiStore((s) => s.flyRequest)
   const scored = useScoredFeatures()
 
@@ -160,12 +164,23 @@ export function MapView() {
     const group = layers.current.flower
     group.clearLayers()
     if (!activeHive) return
+    const observedConfidence = confidenceDisplay('observed')
     for (const f of flowers) {
+      if (showConfidenceLayer) {
+        L.circleMarker([f.lat, f.lon], {
+          radius: 15,
+          color: '#f7d26a',
+          weight: 2,
+          fill: false,
+          opacity: 0.9,
+        }).addTo(group)
+      }
       const marker = L.marker([f.lat, f.lon], { icon: flowerIcon() })
       const note = f.note ? `<div class="pin-pop__meta">${escapeMarkup(f.note)}</div>` : ''
       marker.bindPopup(
         `<div class="pin-pop__title">🌼 ${escapeMarkup(f.plant)} <span class="pin-pop__badge">✓ you spotted</span></div>` +
           note +
+          `<div class="pin-pop__meta">${observedConfidence.label} · ${observedConfidence.detail}</div>` +
           `<button class="pin-remove" data-flower="${f.id}">Remove</button>`,
       )
       marker.on('popupopen', (e) => {
@@ -177,7 +192,7 @@ export function MapView() {
       })
       marker.addTo(group)
     }
-  }, [map, flowers, activeHive])
+  }, [map, flowers, activeHive, showConfidenceLayer])
 
   useEffect(() => {
     if (!map || !layers.current) return
@@ -224,27 +239,50 @@ export function MapView() {
     const group = layers.current.forage
     group.clearLayers()
     const maxScore = scored.length ? scored[0].score : 1
+    const flightClass = flyVerdict(currentWeather).cls
+    const availability = flightAvailabilityFactor(flightClass)
     for (const f of scored.slice(0, MAX_MARKERS)) {
       if (f.confidence === 'observed') continue
       const meta = FORAGE[f.key]
       const matches = !selectedPollen || POLLEN[selectedPollen].keys.includes(f.key)
       const surveyed = f.confidence === 'surveyed'
+      const confidence = confidenceDisplay(f.confidence)
+      const confidenceLayerStyle = showConfidenceLayer
+        ? {
+            color: surveyed ? '#86c661' : 'rgba(243,231,204,0.85)',
+            weight: surveyed ? 2.5 : 1.5,
+            dashArray: surveyed ? undefined : '3 5',
+            opacity: surveyed ? 0.95 : 0.75,
+          }
+        : {
+            color: surveyed ? '#86c661' : 'rgba(243,231,204,0.85)',
+            weight: surveyed ? 2 : 1,
+            dashArray: undefined,
+            opacity: 1,
+          }
+      const weatherMeta =
+        flightClass === 'bad'
+          ? '<div class="pin-pop__meta">Flight constrained now — forage exists, but bees are likely grounded.</div>'
+          : flightClass === 'marg'
+            ? '<div class="pin-pop__meta">Marginal flight weather now — access is reduced.</div>'
+            : ''
       const marker = L.circleMarker([f.lat, f.lon], {
-        radius: 5 + 7 * (f.score / maxScore),
-        color: surveyed ? '#86c661' : 'rgba(243,231,204,0.85)',
-        weight: surveyed ? 2 : 1,
+        radius: (5 + 7 * (f.score / maxScore)) * (0.75 + 0.25 * availability),
+        ...confidenceLayerStyle,
         fillColor: meta.colour,
-        fillOpacity: matches ? 0.9 : 0.15,
+        fillOpacity: matches ? 0.18 + 0.72 * availability : 0.15,
       })
       marker.bindPopup(
         `<div class="pin-pop__title">${escapeMarkup(f.name)}${surveyed ? ' <span class="pin-pop__badge">✓ DAERA surveyed</span>' : ''}</div>` +
           `<div class="pin-pop__meta">${meta.label} · ${meta.plant}</div>` +
           `<div class="pin-pop__meta">${formatDistance(f.distance)} · ${f.dir}</div>` +
-          `<div class="pin-pop__meta"><span class="pin-dot" style="background:${pollenColour(meta.pollen)}"></span>${meta.pollen} pollen</div>`,
+          `<div class="pin-pop__meta"><span class="pin-dot" style="background:${pollenColour(meta.pollen)}"></span>${meta.pollen} pollen</div>` +
+          `<div class="pin-pop__meta">${confidence.label} · ${confidence.detail}</div>` +
+          weatherMeta,
       )
       marker.addTo(group)
     }
-  }, [map, scored, selectedPollen])
+  }, [map, scored, selectedPollen, showConfidenceLayer, currentWeather])
 
   // Drone-congregation-area suitability grid: draw the stronger cells as graded, warm squares.
   // Each carries a popup breaking down why it scored as it did; click an empty area (or toggle

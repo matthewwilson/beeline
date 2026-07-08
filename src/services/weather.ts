@@ -1,5 +1,5 @@
 import { fetchJson } from './http'
-import type { CurrentWeather, DailyForecast } from '../types'
+import type { CurrentWeather, DailyForecast, HourlyWeather } from '../types'
 
 // Open-Meteo (keyless, CORS `*`).
 export async function fetchCurrentWeather(lat: number, lon: number): Promise<CurrentWeather | null> {
@@ -13,6 +13,13 @@ interface DailyBlock {
   temperature_2m_max?: Array<number | null>
   wind_speed_10m_max?: Array<number | null>
   precipitation_sum?: Array<number | null>
+}
+
+interface HourlyBlock {
+  time?: string[]
+  temperature_2m?: Array<number | null>
+  wind_speed_10m?: Array<number | null>
+  precipitation?: Array<number | null>
 }
 
 // Next 7 days of daily maxima for the "will the bees fly this week?" strip. Returns null on
@@ -32,6 +39,24 @@ export async function fetchDailyForecast(lat: number, lon: number): Promise<Dail
       windMax: d.wind_speed_10m_max?.[i] ?? 0,
       precip: d.precipitation_sum?.[i] ?? 0,
     })
+  })
+  return out
+}
+
+// Next 48 hours, used for the flight-envelope timeline. Returns null on fetch failure and
+// skips incomplete rows so visualisation code can treat the result as clean hourly records.
+export async function fetchHourlyForecast(lat: number, lon: number): Promise<HourlyWeather[] | null> {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,wind_speed_10m,precipitation&forecast_hours=48&timezone=auto`
+  const data = await fetchJson<{ hourly?: HourlyBlock }>(url)
+  const h = data?.hourly
+  if (!h?.time) return null
+  const out: HourlyWeather[] = []
+  h.time.forEach((time, i) => {
+    const temperature = h.temperature_2m?.[i]
+    const windSpeed = h.wind_speed_10m?.[i]
+    const precipitation = h.precipitation?.[i]
+    if (temperature == null || windSpeed == null || precipitation == null) return
+    out.push({ time, temperature, windSpeed, precipitation })
   })
   return out
 }
