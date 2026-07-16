@@ -2,13 +2,14 @@ import { create } from 'zustand'
 import { distanceMetres } from '../lib/geo'
 import { makeFeature } from '../lib/features'
 import { buildGrid, scoreGrid, type DroneCongregationAreaCell } from '../lib/droneCongregationArea'
-import { growingDegreeDaysOffsetDays as offsetDaysFromGrowingDegreeDays } from '../lib/scoring'
 import { foragePlantByName } from '../data/plants'
+import { confidenceForSource } from '../data/sources'
+import { jurisdictionAt, jurisdictionsWithinRadius } from '../data/jurisdictions'
 import { fetchOverpass, overpassToFeatures } from '../services/overpass'
-import { fetchHabitats } from '../services/habitats'
+import { fetchRegionalHabitats } from '../services/regionalHabitats'
 import { fetchElevations } from '../services/elevation'
-import { fetchCurrentWeather, fetchDailyForecast, fetchGrowingDegreeDaysTotal, fetchHourlyForecast } from '../services/weather'
-import { fetchHornetCount } from '../services/nationalBiodiversityNetwork'
+import { fetchCurrentWeather, fetchDailyForecast, fetchGrowingDegreeDaysProfile, fetchHourlyForecast } from '../services/weather'
+import { fetchHornetRecords } from '../services/biosecurity'
 import {
   loadFlowers,
   loadHives,
@@ -17,7 +18,7 @@ import {
   saveHives,
   saveMyHiveIds,
 } from '../storage'
-import type { CurrentWeather, DailyForecast, Feature, Flower, ForageKey, Hive, HourlyWeather, LatLon, PollenKey, Season } from '../types'
+import type { CurrentWeather, DailyForecast, Feature, Flower, ForageKey, Hive, HourlyWeather, Jurisdiction, LatLon, PollenKey, Season } from '../types'
 
 export type ForageStatus = 'idle' | 'scanning' | 'busy' | 'empty' | 'ready'
 
@@ -31,12 +32,14 @@ interface WeatherState {
   hourly: HourlyWeather[] | null
   growingDegreeDaysTotal: number | null
   growingDegreeDaysOffsetDays: number
+  meanCumulativeGrowingDegreeDaysByDay: number[] | null
   loading: boolean
 }
 
 interface BioState {
   loading: boolean
   hornetCount: number | null
+  provider: string | null
   failed: boolean
 }
 
@@ -46,9 +49,10 @@ const initialWeather: WeatherState = {
   hourly: null,
   growingDegreeDaysTotal: null,
   growingDegreeDaysOffsetDays: 0,
+  meanCumulativeGrowingDegreeDaysByDay: null,
   loading: false,
 }
-const initialBio: BioState = { loading: false, hornetCount: null, failed: false }
+const initialBio: BioState = { loading: false, hornetCount: null, provider: null, failed: false }
 
 // Guards against stale async results when the user switches hives mid-fetch.
 let selectionToken = 0
@@ -57,7 +61,7 @@ let droneCongregationAreaToken = 0
 function flowerFeatures(flowers: Flower[], hive: LatLon): Feature[] {
   return flowers.map((f) => {
     const plant = foragePlantByName(f.plant)
-    return makeFeature(f.key, `🌼 ${f.plant}`, f, hive, 'observed', {
+    return makeFeature(f.key, `🌼 ${f.plant}`, f, hive, 'userObservation', {
       bloom: plant?.bloom,
       offSeasonFloor: plant?.offSeasonFloor,
     })
@@ -70,11 +74,13 @@ function mergeFeatures(land: Feature[], flowers: Flower[], hive: LatLon): Featur
   return [...land, ...observed]
 }
 
-const confidenceRank: Record<Feature['confidence'], number> = { observed: 3, surveyed: 2, openStreetMap: 1 }
+const confidenceRank = { observed: 3, surveyed: 2, openStreetMap: 1 } as const
 
 function mergeNearbyLandFeatures(features: Feature[]): Feature[] {
   const merged: Feature[] = []
-  for (const feature of [...features].sort((a, b) => confidenceRank[b.confidence] - confidenceRank[a.confidence])) {
+  for (const feature of [...features].sort(
+    (a, b) => confidenceRank[confidenceForSource(b.source)] - confidenceRank[confidenceForSource(a.source)],
+  )) {
     const existing = merged.find((candidate) => candidate.key === feature.key && distanceMetres(candidate, feature) < 120)
     if (!existing) {
       merged.push(feature)
@@ -93,6 +99,7 @@ interface BeeState {
   flowers: Flower[]
   myHiveIds: number[]
   activeHive: Hive | null
+  activeJurisdiction: Jurisdiction
   landFeatures: Feature[]
   landCoverAvailable: boolean
   features: Feature[]
@@ -134,13 +141,24 @@ interface BeeState {
 
 export const useStore = create<BeeState>((set, get) => {
   async function loadWeather(hive: Hive, token: number) {
-    set((s) => ({ weather: { ...s.weather, loading: true, current: null, forecast: null, hourly: null } }))
+    set((s) => ({
+      weather: {
+        ...s.weather,
+        loading: true,
+        current: null,
+        forecast: null,
+        hourly: null,
+        growingDegreeDaysTotal: null,
+        growingDegreeDaysOffsetDays: 0,
+        meanCumulativeGrowingDegreeDaysByDay: null,
+      },
+    }))
 
     // Weather calls are independent, so start them together and commit each result as it lands.
     const forecastPromise = fetchDailyForecast(hive.lat, hive.lon)
     const hourlyPromise = fetchHourlyForecast(hive.lat, hive.lon)
     const currentPromise = fetchCurrentWeather(hive.lat, hive.lon)
-    const growingDegreeDaysPromise = fetchGrowingDegreeDaysTotal(hive.lat, hive.lon)
+    const growingDegreeDaysPromise = fetchGrowingDegreeDaysProfile(hive.lat, hive.lon)
 
     void forecastPromise.then((forecast) => {
       if (token !== selectionToken || !forecast) return
@@ -156,17 +174,34 @@ export const useStore = create<BeeState>((set, get) => {
     if (token !== selectionToken) return
     set((s) => ({ weather: { ...s.weather, current, loading: false } }))
 
-    const growingDegreeDaysTotal = await growingDegreeDaysPromise
-    if (token !== selectionToken || growingDegreeDaysTotal == null) return
-    const growingDegreeDaysOffsetDays = offsetDaysFromGrowingDegreeDays(growingDegreeDaysTotal)
-    set((s) => ({ weather: { ...s.weather, growingDegreeDaysTotal, growingDegreeDaysOffsetDays } }))
+    const growingDegreeDaysProfile = await growingDegreeDaysPromise
+    if (token !== selectionToken || !growingDegreeDaysProfile) return
+    set((s) => ({
+      weather: {
+        ...s.weather,
+        growingDegreeDaysTotal: growingDegreeDaysProfile.total,
+        growingDegreeDaysOffsetDays: growingDegreeDaysProfile.seasonOffsetDays,
+        meanCumulativeGrowingDegreeDaysByDay: growingDegreeDaysProfile.meanCumulativeByDay,
+      },
+    }))
   }
 
-  async function loadBiosecurity(hive: Hive, token: number) {
-    set({ biosecurity: { loading: true, hornetCount: null, failed: false } })
-    const count = await fetchHornetCount(hive.lat, hive.lon)
+  async function loadBiosecurity(hive: Hive, jurisdiction: Jurisdiction, token: number) {
+    if (jurisdiction === 'unsupported') {
+      set({ biosecurity: initialBio })
+      return
+    }
+    set({ biosecurity: { loading: true, hornetCount: null, provider: null, failed: false } })
+    const result = await fetchHornetRecords(jurisdiction, hive)
     if (token !== selectionToken) return
-    set({ biosecurity: { loading: false, hornetCount: count, failed: count === null } })
+    set({
+      biosecurity: {
+        loading: false,
+        hornetCount: result?.count ?? null,
+        provider: result?.provider ?? null,
+        failed: result === null,
+      },
+    })
   }
 
   async function loadForage(hive: Hive, token: number) {
@@ -179,19 +214,19 @@ export const useStore = create<BeeState>((set, get) => {
       droneCongregationAreaStatus: get().showDroneCongregationArea ? 'loading' : 'idle',
       status: 'Reading the landscape around this hive…',
     })
-    const [elements, habitats] = await Promise.all([
+    const [elements, habitatResult] = await Promise.all([
       fetchOverpass(hive.lat, hive.lon),
-      fetchHabitats(hive),
+      fetchRegionalHabitats(jurisdictionsWithinRadius(hive, 5000), hive),
     ])
     if (token !== selectionToken) return
 
     const openStreetMap = elements ? overpassToFeatures(elements, hive) : []
-    const landCoverAvailable = elements !== null || habitats.length > 0
-    const land = mergeNearbyLandFeatures([...openStreetMap, ...habitats].filter((f) => f.distance <= 5000))
+    const landCoverAvailable = elements !== null || habitatResult.successfulSources.length > 0
+    const land = mergeNearbyLandFeatures([...openStreetMap, ...habitatResult.features].filter((f) => f.distance <= 5000))
     const features = mergeFeatures(land, get().flowers, hive)
 
     let forageStatus: ForageStatus = 'ready'
-    if (!elements && features.length === 0) forageStatus = 'busy'
+    if (elements === null && habitatResult.successfulSources.length === 0 && features.length === 0) forageStatus = 'busy'
     else if (features.length === 0) forageStatus = 'empty'
 
     set({ landFeatures: land, landCoverAvailable, features, forageStatus, status: '' })
@@ -222,6 +257,7 @@ export const useStore = create<BeeState>((set, get) => {
     flowers: [],
     myHiveIds: [],
     activeHive: null,
+    activeJurisdiction: 'unsupported',
     landFeatures: [],
     landCoverAvailable: false,
     features: [],
@@ -269,9 +305,10 @@ export const useStore = create<BeeState>((set, get) => {
 
     selectHive: (hive) => {
       const token = ++selectionToken
-      set({ activeHive: hive })
+      const jurisdiction = jurisdictionAt(hive)
+      set({ activeHive: hive, activeJurisdiction: jurisdiction })
       void loadWeather(hive, token)
-      void loadBiosecurity(hive, token)
+      void loadBiosecurity(hive, jurisdiction, token)
       void loadForage(hive, token)
     },
 
@@ -309,6 +346,7 @@ export const useStore = create<BeeState>((set, get) => {
         selectionToken++
         set({
           activeHive: null,
+          activeJurisdiction: 'unsupported',
           features: [],
           landFeatures: [],
           landCoverAvailable: false,

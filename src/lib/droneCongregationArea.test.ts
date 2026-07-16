@@ -7,7 +7,7 @@ import type { Feature, ForageKey, LatLon } from '../types'
 const HIVE: LatLon = { lat: 54.6, lon: -5.9 }
 
 function feat(key: ForageKey, at: LatLon): Feature {
-  return { key, name: key, lat: at.lat, lon: at.lon, distance: 0, dir: 'N', confidence: 'openStreetMap' }
+  return { key, name: key, lat: at.lat, lon: at.lon, distance: 0, dir: 'N', source: 'openStreetMap' }
 }
 
 describe('buildGrid', () => {

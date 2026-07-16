@@ -8,7 +8,7 @@ describe('makeFeature', () => {
     const f = makeFeature('meadow', 'Meadow', { lat: 54.61, lon: -5.9 }, hive, 'openStreetMap')
     expect(f.key).toBe('meadow')
     expect(f.name).toBe('Meadow')
-    expect(f.confidence).toBe('openStreetMap')
+    expect(f.source).toBe('openStreetMap')
     expect(f.distance).toBeGreaterThan(0)
     expect(f.dir).toBe('N') // due north of the hive
   })
@@ -19,12 +19,12 @@ describe('makeFeature', () => {
   })
 
   it('includes area (including null) when provided for surveyed habitats', () => {
-    expect(makeFeature('wood', 'Wood', hive, hive, 'surveyed', 12).area).toBe(12)
-    expect(makeFeature('wood', 'Wood', hive, hive, 'surveyed', null).area).toBeNull()
+    expect(makeFeature('wood', 'Wood', hive, hive, 'daeraPriorityHabitats', 12).area).toBe(12)
+    expect(makeFeature('wood', 'Wood', hive, hive, 'daeraPriorityHabitats', null).area).toBeNull()
   })
 
   it('uses geometry for distance while preserving the display point', () => {
-    const f = makeFeature('meadow', 'Long meadow', { lat: 54.7, lon: -5.9 }, hive, 'surveyed', {
+    const f = makeFeature('meadow', 'Long meadow', { lat: 54.7, lon: -5.9 }, hive, 'daeraPriorityHabitats', {
       geometry: {
         type: 'Polygon',
         coordinates: [[[-5.91, 54.59], [-5.89, 54.59], [-5.89, 54.61], [-5.91, 54.61], [-5.91, 54.59]]],

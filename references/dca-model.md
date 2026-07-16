@@ -58,8 +58,8 @@ one extra network call.
 ### Data sources
 - **Land cover** (openness, shelter): the OpenStreetMap Overpass land-use features BeeLine
   already fetches for forage (`src/services/overpass.ts`) — reused, no extra request. OSM way
-  geometry and DAERA/NIEA polygon geometry are preserved where available, so proximity is to the
-  line/polygon rather than only to a centre point.
+  geometry and national habitat-inventory polygon geometry are preserved where available, so
+  proximity is to the line/polygon rather than only to a centre point.
 - **Topography** (low, aspect, slope): elevations from the keyless **Open-Meteo Elevation
   API** (`src/services/elevation.ts`), ~90 m Copernicus/SRTM data, batched ≤100 points per
   request. Slope and aspect are derived by central differences over the elevation grid.
@@ -93,9 +93,9 @@ conservative practical field-search radius rather than a hard biological limit.
 - **Limited urban/building layer.** Overpass here fetches forage land use, not buildings, so
   "openness" is inferred from open-land vs woodland proximity, not from built-up density. A
   cell in a treeless housing estate can look artificially open.
-- **Not validated for this region.** The source studies are from Puerto Rico and Japan.
-  BeeLine is NI-focused; the *direction* of each effect is transferable, the exact weights are
-  a reasoned starting point, not locally calibrated.
+- **Not validated for these regions.** The source studies are from Puerto Rico and Japan. The
+  *direction* of each effect may be transferable to Britain and Ireland, but the exact weights are
+  a reasoned starting point and have not been calibrated locally.
 - **Aspect effect is a hypothesis-level driver.** South preference may be a proxy for
   irradiance and/or geomagnetic cues; either way it is a correlation, not a mechanism.
 - **Still requires field confirmation.** The layer narrows the search; it does not replace a

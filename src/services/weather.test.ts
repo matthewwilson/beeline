@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchCurrentWeather, fetchDailyForecast, fetchGrowingDegreeDaysTotal, fetchHourlyForecast } from './weather'
+import {
+  fetchCurrentWeather,
+  fetchDailyForecast,
+  fetchGrowingDegreeDaysProfile,
+  fetchHourlyForecast,
+  growingDegreeDaysProfileFromDaily,
+} from './weather'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -98,20 +104,33 @@ describe('fetchHourlyForecast', () => {
   })
 })
 
-describe('fetchGrowingDegreeDaysTotal', () => {
-  it('sums growing-degree-days above the base 5C, ignoring nulls', async () => {
-    stubJson({ daily: { temperature_2m_mean: [10, 4, null, 8] } })
-    // max(0,10-5) + max(0,4-5) + 0 + max(0,8-5) = 5 + 0 + 0 + 3 = 8
-    expect(await fetchGrowingDegreeDaysTotal(54, -6)).toBe(8)
+describe('growing degree day profile', () => {
+  function datesForYear(year: number): string[] {
+    const dates: string[] = []
+    for (let date = new Date(Date.UTC(year, 0, 1)); date.getUTCFullYear() === year; date.setUTCDate(date.getUTCDate() + 1)) {
+      dates.push(date.toISOString().slice(0, 10))
+    }
+    return dates
+  }
+
+  it('builds a 365-day local baseline and ignores leap day', () => {
+    const historicalDates = [2020, 2021, 2022, 2023, 2024, 2025].flatMap(datesForYear)
+    const dates = [...historicalDates, '2026-01-01', '2026-01-02', '2026-01-03']
+    const profile = growingDegreeDaysProfileFromDaily(dates, dates.map(() => 10), 2026)
+
+    expect(profile.total).toBe(15)
+    expect(profile.seasonOffsetDays).toBe(0)
+    expect(profile.meanCumulativeByDay).toHaveLength(365)
+    expect(profile.meanCumulativeByDay?.[364]).toBe(1825)
   })
 
-  it('returns 0 when the archive has no daily means', async () => {
+  it('returns null when the archive body is incomplete', async () => {
     stubJson({})
-    expect(await fetchGrowingDegreeDaysTotal(54, -6)).toBe(0)
+    expect(await fetchGrowingDegreeDaysProfile(54, -6)).toBeNull()
   })
 
   it('returns null on an HTTP error', async () => {
     stubJson({}, 500)
-    expect(await fetchGrowingDegreeDaysTotal(54, -6)).toBeNull()
+    expect(await fetchGrowingDegreeDaysProfile(54, -6)).toBeNull()
   })
 })

@@ -1,45 +1,41 @@
 import { useStore } from '../store/useStore'
+import { JURISDICTION_PROFILES } from '../data/jurisdictions'
 import styles from './results.module.css'
 
 export function BiosecurityPanel() {
   const activeHive = useStore((s) => s.activeHive)
-  const { loading, hornetCount, failed } = useStore((s) => s.biosecurity)
-  if (!activeHive) return null
+  const jurisdiction = useStore((s) => s.activeJurisdiction)
+  const { loading, hornetCount, provider, failed } = useStore((s) => s.biosecurity)
+  if (!activeHive || jurisdiction === 'unsupported') return null
+  const profile = JURISDICTION_PROFILES[jurisdiction]
 
   return (
     <details className={styles.block}>
       <summary className={styles.summary}>Biosecurity &amp; alerts</summary>
 
-      {loading && <p className={styles.bio}>Checking for Asian hornet records nearby…</p>}
-      {!loading && failed && <p className={styles.bio}>Couldn’t check Asian hornet records right now.</p>}
+      {loading && <p className={styles.bio}>Checking for yellow-legged hornet records nearby…</p>}
+      {!loading && failed && <p className={styles.bio}>Couldn’t check yellow-legged hornet records right now.</p>}
       {!loading && !failed && hornetCount === 0 && (
         <p className={styles.bio}>
-          <span className={styles.ok}>No confirmed Asian hornet records within 10 km</span> (NBN Atlas).
+          <span className={styles.ok}>No published yellow-legged hornet records within 10 km</span> ({provider}).
         </p>
       )}
       {!loading && !failed && hornetCount != null && hornetCount > 0 && (
         <p className={styles.bio}>
           <span className={styles.warn}>
-            {hornetCount} Asian hornet record{hornetCount === 1 ? '' : 's'} within 10 km
+            {hornetCount} yellow-legged hornet record{hornetCount === 1 ? '' : 's'} within 10 km
           </span>{' '}
-          (NBN Atlas) — stay vigilant.
+          ({provider}) — stay vigilant.
         </p>
       )}
 
       <p className={styles.bio}>
-        First NI Asian hornet nest was confirmed in Belfast (Oct 2025). Seen one?{' '}
-        <a href="https://www.invasivespeciesni.co.uk/how-to-report" target="_blank" rel="noopener">
-          Report it
-        </a>
-        , use the Asian Hornet Watch app, or email{' '}
-        <a href="mailto:alertnonnative@ceh.ac.uk">alertnonnative@ceh.ac.uk</a>.
+        Seen a suspected yellow-legged hornet (Asian hornet)?{' '}
+        <a href={profile.hornetReportUrl ?? undefined} target="_blank" rel="noopener">Report it with a photograph</a>.
       </p>
       <p className={styles.bio}>
-        Suspect foulbrood (AFB/EFB) or unusual colony loss? In NI, bee health is handled by{' '}
-        <a href="https://www.daera-ni.gov.uk/articles/bee-health" target="_blank" rel="noopener">
-          DAERA
-        </a>
-        , not the GB National Bee Unit. Notifiable disease must be reported to DAERA.
+        Suspect foulbrood (AFB/EFB) or another notifiable bee pest? Report it promptly to{' '}
+        <a href={profile.diseaseUrl ?? undefined} target="_blank" rel="noopener">{profile.diseaseAuthority}</a>.
       </p>
     </details>
   )

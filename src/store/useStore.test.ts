@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchOverpass, overpassToFeatures } from '../services/overpass'
-import { fetchHabitats } from '../services/habitats'
+import { fetchRegionalHabitats } from '../services/regionalHabitats'
 import { fetchElevations } from '../services/elevation'
 import { fetchDailyForecast, fetchHourlyForecast } from '../services/weather'
 import { useStore } from './useStore'
@@ -12,14 +12,16 @@ vi.mock('../services/overpass', () => ({
   fetchOverpass: vi.fn(),
   overpassToFeatures: vi.fn(() => [] as Feature[]),
 }))
-vi.mock('../services/habitats', () => ({ fetchHabitats: vi.fn(async () => [] as Feature[]) }))
+vi.mock('../services/regionalHabitats', () => ({
+  fetchRegionalHabitats: vi.fn(async () => ({ features: [] as Feature[], successfulSources: [], failedSources: [] })),
+}))
 vi.mock('../services/weather', () => ({
   fetchCurrentWeather: vi.fn(async () => null),
   fetchDailyForecast: vi.fn(async () => null),
   fetchHourlyForecast: vi.fn(async () => null),
-  fetchGrowingDegreeDaysTotal: vi.fn(async () => null),
+  fetchGrowingDegreeDaysProfile: vi.fn(async () => null),
 }))
-vi.mock('../services/nationalBiodiversityNetwork', () => ({ fetchHornetCount: vi.fn(async () => null) }))
+vi.mock('../services/biosecurity', () => ({ fetchHornetRecords: vi.fn(async () => null) }))
 vi.mock('../services/elevation', () => ({ fetchElevations: vi.fn(async () => null) }))
 vi.mock('../storage', () => ({
   loadHives: () => [],
@@ -44,10 +46,11 @@ const hiveB: Hive = { id: 2, name: 'B', lat: 55, lon: -7, createdAt: '' }
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(fetchOverpass).mockResolvedValue([])
-  vi.mocked(fetchHabitats).mockResolvedValue([])
+  vi.mocked(fetchRegionalHabitats).mockResolvedValue({ features: [], successfulSources: [], failedSources: [] })
   vi.mocked(fetchElevations).mockResolvedValue(null)
   useStore.setState({
     activeHive: null,
+    activeJurisdiction: 'unsupported',
     landFeatures: [],
     landCoverAvailable: false,
     features: [],
@@ -59,6 +62,7 @@ beforeEach(() => {
       hourly: null,
       growingDegreeDaysTotal: null,
       growingDegreeDaysOffsetDays: 0,
+      meanCumulativeGrowingDegreeDaysByDay: null,
       loading: false,
     },
     showConfidenceLayer: false,
@@ -73,7 +77,7 @@ describe('selectHive stale-request guard', () => {
   it('ignores a slow forage result for a hive that is no longer active', async () => {
     // overpassToFeatures returns a feature tagged with the hive it was scored against.
     vi.mocked(overpassToFeatures).mockImplementation((_els, hive) => [
-      { key: 'meadow', name: hive.lat === hiveB.lat ? 'B' : 'A', lat: hive.lat, lon: hive.lon, distance: 0, dir: 'N', confidence: 'openStreetMap' },
+      { key: 'meadow', name: hive.lat === hiveB.lat ? 'B' : 'A', lat: hive.lat, lon: hive.lon, distance: 0, dir: 'N', source: 'openStreetMap' },
     ])
 
     const first = deferred<[]>()
@@ -97,17 +101,21 @@ describe('selectHive stale-request guard', () => {
 
   it('merges overlapping OSM and surveyed land features', async () => {
     vi.mocked(overpassToFeatures).mockReturnValueOnce([
-      { key: 'meadow', name: 'OSM meadow', lat: hiveA.lat, lon: hiveA.lon, distance: 0, dir: 'N', confidence: 'openStreetMap' },
+      { key: 'meadow', name: 'OSM meadow', lat: hiveA.lat, lon: hiveA.lon, distance: 0, dir: 'N', source: 'openStreetMap' },
     ])
-    vi.mocked(fetchHabitats).mockResolvedValueOnce([
-      { key: 'meadow', name: 'Surveyed meadow', lat: hiveA.lat, lon: hiveA.lon, distance: 0, dir: 'N', confidence: 'surveyed', area: 4 },
-    ])
+    vi.mocked(fetchRegionalHabitats).mockResolvedValueOnce({
+      features: [
+        { key: 'meadow', name: 'Surveyed meadow', lat: hiveA.lat, lon: hiveA.lon, distance: 0, dir: 'N', source: 'daeraPriorityHabitats', area: 4 },
+      ],
+      successfulSources: ['daeraPriorityHabitats'],
+      failedSources: [],
+    })
 
     useStore.getState().selectHive(hiveA)
     await flush()
 
     expect(useStore.getState().landFeatures).toHaveLength(1)
-    expect(useStore.getState().landFeatures[0].confidence).toBe('surveyed')
+    expect(useStore.getState().landFeatures[0].source).toBe('daeraPriorityHabitats')
     expect(useStore.getState().landFeatures[0].area).toBe(4)
   })
 })
@@ -187,11 +195,11 @@ describe('saveFlower / removeFlower', () => {
     const st = useStore.getState()
     expect(st.flowers).toHaveLength(1)
     expect(st.pendingFlower).toBeNull()
-    expect(st.features.some((f) => f.confidence === 'observed')).toBe(true)
+    expect(st.features.some((f) => f.source === 'userObservation')).toBe(true)
 
     useStore.getState().removeFlower(st.flowers[0].id)
     expect(useStore.getState().flowers).toHaveLength(0)
-    expect(useStore.getState().features.some((f) => f.confidence === 'observed')).toBe(false)
+    expect(useStore.getState().features.some((f) => f.source === 'userObservation')).toBe(false)
   })
 
   it('attaches plant-specific bloom metadata to recognised observed flowers', () => {
@@ -204,7 +212,7 @@ describe('saveFlower / removeFlower', () => {
     })
 
     useStore.getState().saveFlower('Ivy', 'scrub', '')
-    const observed = useStore.getState().features.find((f) => f.confidence === 'observed')
+    const observed = useStore.getState().features.find((f) => f.source === 'userObservation')
 
     expect(observed?.bloom).toEqual([240, 260, 300, 325])
     expect(observed?.offSeasonFloor).toBe(0.03)
@@ -214,7 +222,7 @@ describe('saveFlower / removeFlower', () => {
 describe('drone congregation area loading', () => {
   it('does not commit a DCA result after the layer is toggled off', async () => {
     vi.mocked(fetchOverpass).mockResolvedValueOnce([])
-    vi.mocked(fetchHabitats).mockResolvedValueOnce([])
+    vi.mocked(fetchRegionalHabitats).mockResolvedValueOnce({ features: [], successfulSources: [], failedSources: [] })
     const elevations = deferred<number[] | null>()
     vi.mocked(fetchElevations).mockReturnValueOnce(elevations.promise)
 
@@ -234,7 +242,7 @@ describe('drone congregation area loading', () => {
 
   it('marks DCA as terrain-only when land-cover data is unavailable', async () => {
     vi.mocked(fetchOverpass).mockResolvedValueOnce(null)
-    vi.mocked(fetchHabitats).mockResolvedValueOnce([])
+    vi.mocked(fetchRegionalHabitats).mockResolvedValueOnce({ features: [], successfulSources: [], failedSources: [] })
     vi.mocked(fetchElevations).mockResolvedValueOnce(Array.from({ length: 441 }, () => 50))
 
     useStore.getState().selectHive(hiveA)
@@ -248,7 +256,7 @@ describe('drone congregation area loading', () => {
 
   it('marks DCA as land-cover-only when elevation is unavailable', async () => {
     vi.mocked(overpassToFeatures).mockReturnValueOnce([
-      { key: 'meadow', name: 'Meadow', lat: hiveA.lat, lon: hiveA.lon, distance: 0, dir: 'N', confidence: 'openStreetMap' },
+      { key: 'meadow', name: 'Meadow', lat: hiveA.lat, lon: hiveA.lon, distance: 0, dir: 'N', source: 'openStreetMap' },
     ])
     vi.mocked(fetchElevations).mockResolvedValueOnce(null)
 
@@ -263,7 +271,7 @@ describe('drone congregation area loading', () => {
 
   it('marks DCA as low-confidence partial when both elevation and land cover are unavailable', async () => {
     vi.mocked(fetchOverpass).mockResolvedValueOnce(null)
-    vi.mocked(fetchHabitats).mockResolvedValueOnce([])
+    vi.mocked(fetchRegionalHabitats).mockResolvedValueOnce({ features: [], successfulSources: [], failedSources: [] })
     vi.mocked(fetchElevations).mockResolvedValueOnce(null)
 
     useStore.getState().selectHive(hiveA)

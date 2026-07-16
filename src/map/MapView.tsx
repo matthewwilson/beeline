@@ -4,7 +4,8 @@ import { FORAGE, MATING_RADIUS_KILOMETRES, MAX_MARKERS, RING_KILOMETRES } from '
 import { POLLEN, pollenColour } from '../data/pollen'
 import { createBees, stepBee } from '../lib/beeFlights'
 import type { Bee } from '../lib/beeFlights'
-import { confidenceDisplay } from '../lib/confidence'
+import { confidenceDisplay, sourceDisplay } from '../lib/confidence'
+import { confidenceForSource } from '../data/sources'
 import { cellFactorRows, DEFAULT_STEP_METRES } from '../lib/droneCongregationArea'
 import { clamp, escapeMarkup, formatDistance, offsetLatLon } from '../lib/geo'
 import { useScoredFeatures } from '../lib/useScoredFeatures'
@@ -107,7 +108,8 @@ export function MapView() {
 
   useEffect(() => {
     if (!containerRef.current) return
-    const m = L.map(containerRef.current, { zoomControl: false }).setView([54.607, -5.926], 8)
+    const m = L.map(containerRef.current, { zoomControl: false })
+    m.fitBounds([[49.8, -11], [60.9, 2]], { padding: [18, 18] })
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors',
@@ -242,11 +244,13 @@ export function MapView() {
     const flightClass = flyVerdict(currentWeather).cls
     const availability = flightAvailabilityFactor(flightClass)
     for (const f of scored.slice(0, MAX_MARKERS)) {
-      if (f.confidence === 'observed') continue
+      const confidenceKey = confidenceForSource(f.source)
+      if (confidenceKey === 'observed') continue
       const meta = FORAGE[f.key]
       const matches = !selectedPollen || POLLEN[selectedPollen].keys.includes(f.key)
-      const surveyed = f.confidence === 'surveyed'
-      const confidence = confidenceDisplay(f.confidence)
+      const surveyed = confidenceKey === 'surveyed'
+      const confidence = confidenceDisplay(confidenceKey)
+      const source = sourceDisplay(f.source)
       const confidenceLayerStyle = showConfidenceLayer
         ? {
             color: surveyed ? '#86c661' : 'rgba(243,231,204,0.85)',
@@ -273,11 +277,11 @@ export function MapView() {
         fillOpacity: matches ? 0.18 + 0.72 * availability : 0.15,
       })
       marker.bindPopup(
-        `<div class="pin-pop__title">${escapeMarkup(f.name)}${surveyed ? ' <span class="pin-pop__badge">✓ DAERA surveyed</span>' : ''}</div>` +
+        `<div class="pin-pop__title">${escapeMarkup(f.name)}${surveyed ? ` <span class="pin-pop__badge">✓ ${escapeMarkup(source.label)}</span>` : ''}</div>` +
           `<div class="pin-pop__meta">${meta.label} · ${meta.plant}</div>` +
           `<div class="pin-pop__meta">${formatDistance(f.distance)} · ${f.dir}</div>` +
           `<div class="pin-pop__meta"><span class="pin-dot" style="background:${pollenColour(meta.pollen)}"></span>${meta.pollen} pollen</div>` +
-          `<div class="pin-pop__meta">${confidence.label} · ${confidence.detail}</div>` +
+          `<div class="pin-pop__meta">${confidence.label} · ${escapeMarkup(source.detail)}</div>` +
           weatherMeta,
       )
       marker.addTo(group)

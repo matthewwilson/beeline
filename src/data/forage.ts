@@ -1,7 +1,7 @@
 import type { Confidence, ForageKey, ForageMeta } from '../types'
 
 // `base` = relative forage value (0-10), grounded in Baude et al. 2016/2025 nectar & pollen
-// rankings plus standard Northern Ireland / United Kingdom forage references (see references/forage-values.md).
+// rankings plus standard Britain and Ireland forage references (see references/forage-values.md).
 export const FORAGE: Record<ForageKey, ForageMeta> = {
   hedge: { label: 'Hedgerow', base: 9, colour: '#c98a5e', pollen: 'cream', plant: 'hawthorn / blackthorn / bramble' },
   heath: { label: 'Heath', base: 9, colour: '#a06cd5', pollen: 'grey', plant: 'heather' },

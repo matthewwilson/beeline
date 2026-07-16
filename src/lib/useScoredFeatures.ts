@@ -13,9 +13,10 @@ export function useScoredFeatures(): ScoredFeature[] {
   const season = useStore((s) => s.season)
   const selectedPollen = useStore((s) => s.selectedPollen)
   const growingDegreeDaysOffsetDays = useStore((s) => s.weather.growingDegreeDaysOffsetDays)
+  const growingDegreeDaysTotal = useStore((s) => s.weather.growingDegreeDaysTotal)
 
   return useMemo(() => {
-    const ctx = { season, growingDegreeDaysOffsetDays, selectedPollen }
+    const ctx = { season, growingDegreeDaysOffsetDays, growingDegreeDaysTotal, selectedPollen }
     return features.map((f) => ({ ...f, score: scoreOf(f, ctx) })).sort((a, b) => b.score - a.score)
-  }, [features, season, selectedPollen, growingDegreeDaysOffsetDays])
+  }, [features, season, selectedPollen, growingDegreeDaysOffsetDays, growingDegreeDaysTotal])
 }

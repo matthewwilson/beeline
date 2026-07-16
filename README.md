@@ -13,21 +13,26 @@ richest nectar/pollen sources closest to home).
   woods…) and ranks the **likely destinations** by forage value × bloom timing × distance.
 - **Research-grounded forage values** — per-plant nectar values derived from Baude et al.'s
   measured UK nectar/pollen datasets (see [`references/forage-values.md`](references/forage-values.md)).
-- **Authoritative NI habitat layers** — supplements OSM with DAERA/NIEA **Priority Habitats**
-  (surveyed heath, species-rich grassland, peatland, fens, woodland), marked surveyed and given
-  a confidence bonus.
+- **Authoritative regional habitat layers** — supplements OSM with national inventories from
+  DAERA/NIEA, Natural England, NatureScot, Natural Resources Wales and Ireland's National Parks
+  and Wildlife Service. Surveyed habitat receives a provenance label and confidence bonus.
 - **Live weather + dynamic bloom** — an Open-Meteo "are the bees flying today?" panel, and an
-  **Auto** season mode that shifts bloom timing by the year's growing-degree-day anomaly.
-- **Hedgerow forage** — hedges (hawthorn/blackthorn/bramble), the biggest real NI forage source,
-  pulled from OSM and scored.
+  **Auto** season mode that compares the current year with the previous ten years at the hive's
+  coordinates and scores bloom against local growing degree days.
+- **Hedgerow forage** — hedges (hawthorn/blackthorn/bramble), a major forage source across Britain
+  and Ireland, pulled from OSM and scored.
 - **Pollen colour map** — each source is tinted by its plant's characteristic pollen colour, and a
   swatch picker highlights the sources matching the pollen you see at the hive entrance.
-- **Field flower log** 🌼 — walk up to a plant and log it (curated NI list, or free text). Saved on
+- **Field flower log** 🌼 — walk up to a plant and log it (curated list, or free text). Saved on
   your device; each sighting becomes a high-confidence forage point that outranks generic data nearby.
 - **Forage calendar & June-gap planner** 📅 — a year-round forage-availability chart for the hive,
   flagging lean periods (the classic June gap) and suggesting pollinator plants to fill them.
-- **Biosecurity & alerts** 🛡️ — a live "any Asian hornet records within 10 km?" check (NBN Atlas)
-  plus one-tap reporting, and NI-correct disease guidance (report to DAERA, not the GB bee unit).
+- **Biosecurity & alerts** 🛡️ — a live "any yellow-legged hornet records within 10 km?" check from
+  NBN Atlas in the UK or NBDC records via GBIF in Ireland, with reporting and bee-health guidance
+  routed to the correct national authority.
+- **Automatic regional coverage** — detects Northern Ireland, the Republic of Ireland, Scotland,
+  England or Wales from the hive location. Hives elsewhere retain OSM, weather, elevation and
+  observations while regional habitat and biosecurity guidance is clearly unavailable.
 - **Your hives** — add as many hives as you like; saved in your browser's `localStorage`, no account,
   no server.
 
@@ -38,10 +43,11 @@ A **React + Vite + TypeScript** single-page app, built to static files and serve
 - **Type & data:** self-hosted fonts (Fraunces / Hanken Grotesk / IBM Plex Mono) — no font CDN.
 - **PWA:** [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/) generates the manifest, icons and a
   service worker. The app is **installable** and the shell works offline; live data (map tiles,
-  Overpass, DAERA, Open-Meteo, NBN) is fetched over the network and is not cached.
+  Overpass, national habitat services, Open-Meteo, NBN and GBIF) is fetched over the network and
+  is not cached.
 
-All forage data is fetched live, client-side, from free/open APIs (Overpass, DAERA/NIEA ArcGIS,
-Open-Meteo, NBN Atlas). There is no backend.
+All forage data is fetched live, client-side, from free/open APIs. There is no backend. See
+[`references/regional-data.md`](references/regional-data.md) for regional coverage and provenance.
 
 ## Running locally
 Requires Node 20.19+ or 22+.
@@ -69,8 +75,10 @@ and service-worker scope.
 ## Data & attribution
 - Forage values: **Baude et al.** nectar (2016) & pollen (2025) datasets, UKCEH/EIDC, Open
   Government Licence. See `references/forage-values.md`.
-- Habitats: **DAERA/NIEA Priority Habitats**, via [OpenDataNI](https://www.opendatani.gov.uk/),
-  Open Government Licence.
+- Habitats: **DAERA/NIEA Priority Habitats**, **Natural England Priority Habitats Inventory**,
+  **NatureScot Habitat Map of Scotland**, **Natural Resources Wales Phase 1 Habitat Survey** and
+  **NPWS Article 17, native woodland and semi-natural grassland surveys**. See the regional data
+  reference for licences and endpoints.
 - Weather: **Open-Meteo**. Map & land use: **© OpenStreetMap contributors** (ODbL).
-- Asian hornet check: **NBN Atlas** occurrence API. Planting suggestions: **All-Ireland Pollinator
-  Plan** / **RHS Plants for Pollinators**. Bee-health guidance: **DAERA** (NI).
+- Yellow-legged hornet check: **NBN Atlas** in the UK and **NBDC records via GBIF** in Ireland.
+  Planting suggestions: **All-Ireland Pollinator Plan** / **RHS Plants for Pollinators**.

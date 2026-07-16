@@ -1,4 +1,5 @@
 import { CONFIDENCE_WEIGHTS, FORAGE } from '../data/forage'
+import { confidenceForSource } from '../data/sources'
 import { BLOOM, GROWING_DEGREE_DAYS_BASELINE, OFF_SEASON_FLOOR, SEASON } from '../data/bloom'
 import { POLLEN } from '../data/pollen'
 import { clamp, dayOfYear } from './geo'
@@ -27,6 +28,11 @@ export function bloomFactorAtDoy(key: ForageKey, doy: number): number {
   return bloomFactorForWindowAtDoy(w, doy, OFF_SEASON_FLOOR[key])
 }
 
+export function bloomFactorForWindowAtGrowingDegreeDays(window: BloomWindow, total: number, floor: number): number {
+  const thermalWindow = window.map((doy) => expectedGrowingDegreeDays(doy)) as BloomWindow
+  return bloomFactorForWindowAtDoy(thermalWindow, total, floor)
+}
+
 export function bloomFactor(key: ForageKey, growingDegreeDaysOffsetDays: number): number {
   return bloomFactorAtDoy(key, dayOfYear() + growingDegreeDaysOffsetDays)
 }
@@ -36,8 +42,16 @@ export function seasonFactor(key: ForageKey, season: Season, growingDegreeDaysOf
   return bloomFactor(key, growingDegreeDaysOffsetDays)
 }
 
-export function featureSeasonFactor(feature: Feature, ctx: Pick<ScoreContext, 'season' | 'growingDegreeDaysOffsetDays'>): number {
+export function featureSeasonFactor(
+  feature: Feature,
+  ctx: Pick<ScoreContext, 'season' | 'growingDegreeDaysOffsetDays' | 'growingDegreeDaysTotal'>,
+): number {
   if (ctx.season !== 'auto') return SEASON[ctx.season][feature.key] ?? 1
+  const window = feature.bloom ?? BLOOM[feature.key]
+  const floor = feature.offSeasonFloor ?? OFF_SEASON_FLOOR[feature.key]
+  if (ctx.growingDegreeDaysTotal != null) {
+    return bloomFactorForWindowAtGrowingDegreeDays(window, ctx.growingDegreeDaysTotal, floor)
+  }
   if (feature.bloom) {
     return bloomFactorForWindowAtDoy(
       feature.bloom,
@@ -51,13 +65,14 @@ export function featureSeasonFactor(feature: Feature, ctx: Pick<ScoreContext, 's
 export interface ScoreContext {
   season: Season
   growingDegreeDaysOffsetDays: number
+  growingDegreeDaysTotal: number | null
   selectedPollen: PollenKey | null
 }
 
 export function scoreOf(f: Feature, ctx: ScoreContext): number {
   const meta = FORAGE[f.key]
   const decay = Math.exp(-f.distance / 1500)
-  const confidence = CONFIDENCE_WEIGHTS[f.confidence] ?? 1
+  const confidence = CONFIDENCE_WEIGHTS[confidenceForSource(f.source)]
   let score =
     meta.base *
     featureSeasonFactor(f, ctx) *
@@ -69,8 +84,8 @@ export function scoreOf(f: Feature, ctx: ScoreContext): number {
   return score
 }
 
-// Rough Northern Ireland lowland cumulative growing degree days (base 5C) expected by a
-// given day-of-year, interpolated from the baseline curve.
+// Reference cumulative growing degree days (base 5C) expected by a day-of-year, interpolated
+// from the baseline curve.
 export function expectedGrowingDegreeDays(doy: number): number {
   const baseline = GROWING_DEGREE_DAYS_BASELINE
   if (doy <= baseline[0][0]) return baseline[0][1]

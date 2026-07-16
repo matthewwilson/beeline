@@ -1,4 +1,5 @@
 import type { Confidence, ScoredFeature } from '../types'
+import { confidenceForSource, FEATURE_SOURCES, type FeatureSourceMeta } from '../data/sources'
 
 export interface ConfidenceDisplay {
   label: string
@@ -23,7 +24,7 @@ export const CONFIDENCE_DISPLAY: Record<Confidence, ConfidenceDisplay> = {
   surveyed: {
     label: 'High confidence',
     shortLabel: 'surveyed',
-    detail: 'DAERA/NIEA Priority Habitat survey',
+    detail: 'Authoritative habitat inventory',
     rank: 2,
   },
   openStreetMap: {
@@ -43,7 +44,7 @@ export function confidenceContributions(features: ScoredFeature[]): ConfidenceCo
   let total = 0
 
   for (const feature of features) {
-    totals[feature.confidence] += feature.score
+    totals[confidenceForSource(feature.source)] += feature.score
     total += feature.score
   }
 
@@ -57,4 +58,8 @@ export function confidenceContributions(features: ScoredFeature[]): ConfidenceCo
       label: CONFIDENCE_DISPLAY[confidence].shortLabel,
       pct: Math.round((100 * totals[confidence]) / total),
     }))
+}
+
+export function sourceDisplay(source: ScoredFeature['source']): FeatureSourceMeta {
+  return FEATURE_SOURCES[source]
 }

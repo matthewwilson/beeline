@@ -3,6 +3,7 @@ import { Credits } from './Credits'
 import { SeasonSelect } from './SeasonSelect'
 import { Section } from './Section'
 import styles from './workspace.module.css'
+import { JURISDICTION_PROFILES } from '../data/jurisdictions'
 
 interface SetupPanelProps {
   isDesktop: boolean
@@ -11,6 +12,7 @@ interface SetupPanelProps {
 export function SetupPanel({ isDesktop }: SetupPanelProps) {
   const activeHive = useStore((s) => s.activeHive)
   const myHiveIds = useStore((s) => s.myHiveIds)
+  const activeJurisdiction = useStore((s) => s.activeJurisdiction)
   const removeHive = useStore((s) => s.removeHive)
 
   return (
@@ -26,7 +28,12 @@ export function SetupPanel({ isDesktop }: SetupPanelProps) {
           <div className={styles.hiveCard}>
             <div>
               <strong>{activeHive.name}</strong>
-              <p className={styles.hiveMeta}>{myHiveIds.includes(activeHive.id) ? 'Your hive' : 'Saved hive'}</p>
+              <p className={styles.hiveMeta}>
+                {myHiveIds.includes(activeHive.id) ? 'Your hive' : 'Saved hive'} · {JURISDICTION_PROFILES[activeJurisdiction].label}
+              </p>
+              {activeJurisdiction === 'unsupported' && (
+                <p className="hint">Regional habitat and biosecurity guidance is unavailable here. OpenStreetMap and weather still apply.</p>
+              )}
             </div>
             <button type="button" className={styles.removeLink} onClick={() => removeHive(activeHive.id)}>
               Remove

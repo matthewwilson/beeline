@@ -37,7 +37,8 @@ export default defineConfig({
         globIgnores: ['**/icons/pwa-512.png', '**/icons/maskable-512.png'],
         navigateFallback: `${BASE_PATH}index.html`,
         cleanupOutdatedCaches: true,
-        // Offline is app-shell only: tiles, Overpass, DAERA, Open-Meteo and NBN are
+        // Offline is app-shell only: tiles, Overpass, national habitat services,
+        // Open-Meteo, NBN and GBIF are
         // live third-party fetches and are deliberately never cached (stale data misleads).
         runtimeCaching: [],
       },

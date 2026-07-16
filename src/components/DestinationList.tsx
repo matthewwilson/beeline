@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { FORAGE } from '../data/forage'
 import { POLLEN, pollenColour } from '../data/pollen'
-import { confidenceContributions } from '../lib/confidence'
+import { confidenceContributions, sourceDisplay } from '../lib/confidence'
+import { confidenceForSource } from '../data/sources'
 import { formatDistance } from '../lib/geo'
 import { useScoredFeatures } from '../lib/useScoredFeatures'
 import { useStore } from '../store/useStore'
@@ -44,7 +45,8 @@ export function DestinationList() {
         {rows.map((f, i) => {
           const meta = FORAGE[f.key]
           const matches = !selectedPollen || POLLEN[selectedPollen].keys.includes(f.key)
-          const tag = f.confidence === 'observed' ? 'you spotted' : f.confidence === 'surveyed' ? 'surveyed' : null
+          const confidenceKey = confidenceForSource(f.source)
+          const tag = confidenceKey === 'openStreetMap' ? null : sourceDisplay(f.source).shortLabel
           return (
             <li key={`${f.lat},${f.lon},${i}`}>
               <button

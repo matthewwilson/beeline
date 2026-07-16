@@ -7,8 +7,8 @@ export const SEASON: Record<Exclude<Season, 'auto'>, Partial<Record<ForageKey, n
   late: { heath: 2.2, scrub: 1.3, orchard: 0.2, farmland: 0.5, wood: 0.8, hedge: 0.7, meadow: 0.9 },
 }
 
-// Approx NI bloom windows as day-of-year [start, peakStart, peakEnd, end] (see references/forage-values.md).
-// Used in "auto" mode, shifted by a growing-degree-day anomaly so a warm year advances bloom.
+// Original NI-tuned reference windows as day-of-year [start, peakStart, peakEnd, end]. Auto mode
+// converts them to thermal thresholds and compares them with local growing degree days.
 export const BLOOM: Record<ForageKey, BloomWindow> = {
   hedge: [75, 120, 215, 255],
   scrub: [130, 165, 245, 280],
@@ -37,8 +37,8 @@ export const OFF_SEASON_FLOOR: Record<ForageKey, number> = {
   park: 0.18,
 }
 
-// Rough Northern Ireland lowland cumulative growing degree days (base 5C) by day-of-year,
-// for a "season ahead/behind" estimate only.
+// Rough Northern Ireland lowland reference curve used to convert bloom windows to base 5C
+// growing-degree-day thresholds. The live local mean curve is fetched separately.
 export const GROWING_DEGREE_DAYS_BASELINE: Array<[number, number]> = [
   [1, 2],
   [31, 15],

@@ -21,7 +21,7 @@ interface ArcGisFeature {
 }
 
 // Surveyed polygons supplement OpenStreetMap where coverage exists (given a confidence bonus in scoring).
-export async function fetchHabitats(hive: LatLon): Promise<Feature[]> {
+export async function fetchNorthernIrelandHabitats(hive: LatLon): Promise<Feature[] | null> {
   const sw = offsetLatLon(hive, -5000, -5000)
   const ne = offsetLatLon(hive, 5000, 5000)
   const bbox = [sw.lon, sw.lat, ne.lon, ne.lat].join(',')
@@ -30,7 +30,7 @@ export async function fetchHabitats(hive: LatLon): Promise<Feature[]> {
 
   const perLayer = HABITAT_LAYERS.map(async (layer) => {
     const gj = await fetchJson<{ features?: ArcGisFeature[] }>(layerUrl(layer.name), { timeoutMs: 15000 })
-    if (!gj) return []
+    if (!gj) return null
     const mapped: Feature[] = []
     for (const f of gj.features ?? []) {
       const c = polygonCentroid(f.geometry)
@@ -38,7 +38,7 @@ export async function fetchHabitats(hive: LatLon): Promise<Feature[]> {
       const props = f.properties ?? {}
       const pt = { lat: c[1], lon: c[0] }
       mapped.push(
-        makeFeature(layer.key, props.Hab_Type ?? FORAGE[layer.key].label, pt, hive, 'surveyed', {
+        makeFeature(layer.key, props.Hab_Type ?? FORAGE[layer.key].label, pt, hive, 'daeraPriorityHabitats', {
           area: props.Area_Hectares ?? null,
           geometry: f.geometry,
         }),
@@ -46,5 +46,7 @@ export async function fetchHabitats(hive: LatLon): Promise<Feature[]> {
     }
     return mapped
   })
-  return (await Promise.all(perLayer)).flat()
+  const results = await Promise.all(perLayer)
+  if (results.every((result) => result === null)) return null
+  return results.flatMap((result) => result ?? [])
 }

@@ -1,5 +1,5 @@
 import { bearing, distanceMetres, nearestPointOnGeometry } from './geo'
-import type { BloomWindow, Confidence, Feature, FeatureGeometry, ForageKey, LatLon } from '../types'
+import type { BloomWindow, Feature, FeatureGeometry, FeatureSourceKey, ForageKey, LatLon } from '../types'
 
 export interface FeatureOptions {
   area?: number | null
@@ -19,7 +19,7 @@ export function makeFeature(
   name: string,
   pt: LatLon,
   hive: LatLon,
-  confidence: Confidence,
+  source: FeatureSourceKey,
   options: FeatureOptions | number | null = {},
 ): Feature {
   const opts: FeatureOptions = typeof options === 'number' || options === null ? { area: options } : options
@@ -31,7 +31,7 @@ export function makeFeature(
     lon: pt.lon,
     distance: distanceMetres(hive, distancePoint),
     dir: bearing(hive, distancePoint),
-    confidence,
+    source,
   }
   if (opts.area !== undefined) feature.area = opts.area
   if (opts.geometry) feature.geometry = opts.geometry

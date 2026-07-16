@@ -9,10 +9,16 @@ import {
   seasonFactor,
 } from './scoring'
 import { dayOfYear } from './geo'
-import type { Feature, ForageKey } from '../types'
+import type { Confidence, Feature, FeatureSourceKey, ForageKey } from '../types'
 
-function feature(key: ForageKey, distance: number, confidence: Feature['confidence']): Feature {
-  return { key, name: key, lat: 0, lon: 0, distance, dir: 'N', confidence }
+const SOURCE_BY_CONFIDENCE: Record<Confidence, FeatureSourceKey> = {
+  observed: 'userObservation',
+  surveyed: 'daeraPriorityHabitats',
+  openStreetMap: 'openStreetMap',
+}
+
+function feature(key: ForageKey, distance: number, confidence: Confidence): Feature {
+  return { key, name: key, lat: 0, lon: 0, distance, dir: 'N', source: SOURCE_BY_CONFIDENCE[confidence] }
 }
 
 describe('bloomFactorAtDoy', () => {
@@ -38,7 +44,7 @@ describe('seasonFactor', () => {
 
 describe('scoreOf', () => {
   it('ranks confidence observed > surveyed > OpenStreetMap by the exact multipliers', () => {
-    const ctx = { season: 'summer' as const, growingDegreeDaysOffsetDays: 0, selectedPollen: null }
+    const ctx = { season: 'summer' as const, growingDegreeDaysOffsetDays: 0, growingDegreeDaysTotal: null, selectedPollen: null }
     const openStreetMap = scoreOf(feature('meadow', 500, 'openStreetMap'), ctx)
     const surveyed = scoreOf(feature('meadow', 500, 'surveyed'), ctx)
     const observed = scoreOf(feature('meadow', 500, 'observed'), ctx)
@@ -48,28 +54,28 @@ describe('scoreOf', () => {
     expect(observed / openStreetMap).toBeCloseTo(1.5, 6)
   })
   it('applies the pollen-mismatch penalty', () => {
-    const base = { season: 'summer' as const, growingDegreeDaysOffsetDays: 0 }
+    const base = { season: 'summer' as const, growingDegreeDaysOffsetDays: 0, growingDegreeDaysTotal: null }
     const f = feature('farmland', 500, 'openStreetMap')
     const unfiltered = scoreOf(f, { ...base, selectedPollen: null })
     const mismatched = scoreOf(f, { ...base, selectedPollen: 'grey' })
     expect(mismatched / unfiltered).toBeCloseTo(0.15, 6)
   })
   it('gives a larger habitat patch a modest lift, leaving area-less features unchanged', () => {
-    const ctx = { season: 'summer' as const, growingDegreeDaysOffsetDays: 0, selectedPollen: null }
+    const ctx = { season: 'summer' as const, growingDegreeDaysOffsetDays: 0, growingDegreeDaysTotal: null, selectedPollen: null }
     const noArea = scoreOf(feature('heath', 500, 'surveyed'), ctx)
     const big = scoreOf({ ...feature('heath', 500, 'surveyed'), area: 50 }, ctx)
     expect(big).toBeGreaterThan(noArea)
     expect(big / noArea).toBeCloseTo(areaFactor(50), 6)
   })
   it('uses plant-specific bloom windows on observed flowers', () => {
-    const base = { key: 'scrub' as const, name: 'Ivy', lat: 0, lon: 0, distance: 100, dir: 'N', confidence: 'observed' as const }
-    const ctx = { season: 'auto' as const, growingDegreeDaysOffsetDays: 275 - dayOfYear(), selectedPollen: null }
+    const base = { key: 'scrub' as const, name: 'Ivy', lat: 0, lon: 0, distance: 100, dir: 'N', source: 'userObservation' as const }
+    const ctx = { season: 'auto' as const, growingDegreeDaysOffsetDays: 275 - dayOfYear(), growingDegreeDaysTotal: null, selectedPollen: null }
     const ivy = scoreOf({ ...base, bloom: [240, 260, 300, 325], offSeasonFloor: 0.03 }, ctx)
     const scrub = scoreOf(base, ctx)
     expect(ivy).toBeGreaterThan(scrub)
   })
   it('discounts generic farmland without flowering crop evidence', () => {
-    const ctx = { season: 'spring' as const, growingDegreeDaysOffsetDays: 0, selectedPollen: null }
+    const ctx = { season: 'spring' as const, growingDegreeDaysOffsetDays: 0, growingDegreeDaysTotal: null, selectedPollen: null }
     const generic = scoreOf({ ...feature('farmland', 500, 'openStreetMap'), scoreMultiplier: 0.45 }, ctx)
     const crop = scoreOf(feature('farmland', 500, 'openStreetMap'), ctx)
     expect(generic / crop).toBeCloseTo(0.45, 6)

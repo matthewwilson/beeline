@@ -1,8 +1,8 @@
 # Forage value + bloom-timing provenance
 
 BeeLine's per-class forage `base` values (0-10) and bloom windows are not arbitrary. They are
-derived from published nectar/pollen research plus standard NI/UK forage references, and tuned
-to the Northern Ireland season. This file documents where the numbers come from.
+derived from published nectar/pollen research plus standard UK and Ireland forage references.
+This file documents where the numbers come from and how local weather adjusts their timing.
 
 ## Why not the raw dataset?
 The definitive open dataset is Baude et al.'s measured nectar and pollen productivity for common
@@ -20,7 +20,7 @@ forage references. A future update can drop in the exact per-species figures onc
 ## Class -> representative species -> normalised base
 | BeeLine class | Representative nectar/pollen plants | Relative importance | base |
 |---|---|---|---|
-| hedge | hawthorn (*Crataegus*), blackthorn (*Prunus spinosa*), bramble (*Rubus fruticosus*) | Brambles + hawthorn are among Baude's top national nectar providers; hedgerows are the dominant NI forage feature | 9 |
+| hedge | hawthorn (*Crataegus*), blackthorn (*Prunus spinosa*), bramble (*Rubus fruticosus*) | Brambles + hawthorn are among Baude's top national nectar providers; hedgerows are a major forage feature | 9 |
 | heath | heather (*Calluna vulgaris*) | Heather is a top national nectar source; critical late-summer flow | 9 |
 | meadow | white clover (*Trifolium repens*), knapweed (*Centaurea*), dandelion (*Taraxacum*) | Clover + knapweed are top providers; species-rich grassland is high value | 8 |
 | scrub | bramble, gorse (*Ulex*) | Bramble a top provider; gorse near year-round | 8 |
@@ -31,22 +31,26 @@ forage references. A future update can drop in the exact per-species figures onc
 | wood | willow (*Salix*), sycamore (*Acer*), lime (*Tilia*) | Willow early pollen, lime brief summer flow; patchy | 5 |
 | park | amenity grass + verges, ornamental trees | Mostly low, some tree/border value | 5 |
 
-## Bloom windows (day-of-year, NI-tuned)
-`BLOOM[class] = [start, peakStart, peakEnd, end]`. NI flowers roughly 1-2 weeks later than
-southern England, so windows are shifted accordingly. In "Auto" season mode these windows are
-shifted earlier/later by a growing-degree-day (base 5C) anomaly computed from Open-Meteo, so a
-warm year advances bloom. Windows are approximate and intended for relative ranking, not
-phenological prediction. Sources: Woodland Trust Nature's Calendar summaries, standard UK/Ireland
-beekeeping forage calendars, and the All-Ireland Pollinator Plan.
+## Bloom windows and thermal timing
+`BLOOM[class] = [start, peakStart, peakEnd, end]` stores the original NI-tuned reference windows.
+In "Auto" mode those day-of-year points are converted to growing-degree-day (base 5C) thresholds
+using the reference curve, then compared with the current cumulative total at the hive. This
+makes the bloom score respond to local thermal progress rather than applying one national calendar.
+Windows remain approximate and are intended for relative ranking, not phenological prediction.
+Sources: Woodland Trust Nature's Calendar summaries, standard UK/Ireland beekeeping forage
+calendars and the All-Ireland Pollinator Plan.
 
 Each class also has an off-season floor. Short pulse resources such as orchard blossom and
 flowering crops drop close to zero outside their bloom window; mixed habitats such as gardens,
 parks, allotments and scrub retain a higher floor because they contain many species with staggered
 flowering.
 
-## GDD baseline
-`GDD_BASELINE` is a rough NI-lowland cumulative growing-degree-day (base 5C) curve by day-of-year,
-used only to express the current year as "~N days ahead/behind average". It is an approximation.
+## Growing-degree-day baseline
+`GROWING_DEGREE_DAYS_BASELINE` is the original rough NI-lowland reference curve used to translate
+the static bloom windows into thermal thresholds. Open-Meteo archive data supplies a coordinate-
+specific mean cumulative curve from the previous ten complete or partial seasons. At least five
+years are required; otherwise Auto mode falls back to the static day-of-year windows. The weather
+panel's "ahead/behind local average" phrase also uses that local curve.
 
 ## Field flowers (`FORAGE_PLANTS`)
 The "add a flower" field log maps each curated plant to an existing forage class so it inherits
@@ -62,8 +66,8 @@ bramble, gorse and ivy still display as `scrub`, but score with plant-specific w
 late-season forage and gorse is treated as extended/winter-spring forage rather than summer bramble.
 
 ## Habitat area (`areaFactor`)
-DAERA/NIEA priority-habitat polygons carry a mapped area (hectares) that a point source (an OSM
-tag or an observed flower) does not. A larger patch plausibly holds more forage, so the score
+Authoritative habitat polygons can carry a mapped area (hectares) that a point source (an OSM tag
+or an observed flower) does not. A larger patch plausibly holds more forage, so the score
 gets a gentle, saturating lift: `areaFactor = clamp(1 + 0.12 × log10(1 + hectares), 1, 1.4)`.
 Area-less features (undefined or 0) score at ×1, so only surveyed habitats are affected. The log
 and the ×1.4 cap keep it a tie-breaker: it nudges the ranking of comparable habitats without ever

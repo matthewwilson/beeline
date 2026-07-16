@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { forageCalendar } from './calendar'
+import { expectedGrowingDegreeDays } from './scoring'
 import type { Feature, ForageKey } from '../types'
 
 function feature(key: ForageKey, distance: number): Feature {
-  return { key, name: key, lat: 0, lon: 0, distance, dir: 'N', confidence: 'openStreetMap' }
+  return { key, name: key, lat: 0, lon: 0, distance, dir: 'N', source: 'openStreetMap' }
 }
 
 describe('forageCalendar', () => {
@@ -51,9 +52,11 @@ describe('forageCalendar', () => {
     expect(large.peak).toBeLessThan(plain.peak)
   })
 
-  it('shifts bloom timing with the growing-degree-day offset', () => {
-    const normal = forageCalendar([feature('orchard', 100)], 3, 0)
-    const advanced = forageCalendar([feature('orchard', 100)], 3, 25)
+  it('shifts bloom timing with the local growing-degree-day baseline', () => {
+    const normalCurve = Array.from({ length: 365 }, (_, day) => expectedGrowingDegreeDays(day + 1))
+    const warmCurve = Array.from({ length: 365 }, (_, day) => expectedGrowingDegreeDays(Math.min(365, day + 26)))
+    const normal = forageCalendar([feature('orchard', 100)], 3, normalCurve)
+    const advanced = forageCalendar([feature('orchard', 100)], 3, warmCurve)
     expect(normal).not.toBeNull()
     expect(advanced).not.toBeNull()
     if (!normal || !advanced) return

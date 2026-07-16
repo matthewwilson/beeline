@@ -6,8 +6,11 @@ import styles from './results.module.css'
 
 export function ForageCalendar() {
   const features = useStore((s) => s.features)
-  const growingDegreeDaysOffsetDays = useStore((s) => s.weather.growingDegreeDaysOffsetDays)
-  const cal = useMemo(() => forageCalendar(features, new Date().getMonth(), growingDegreeDaysOffsetDays), [features, growingDegreeDaysOffsetDays])
+  const meanCumulativeGrowingDegreeDaysByDay = useStore((s) => s.weather.meanCumulativeGrowingDegreeDaysByDay)
+  const cal = useMemo(
+    () => forageCalendar(features, new Date().getMonth(), meanCumulativeGrowingDegreeDaysByDay),
+    [features, meanCumulativeGrowingDegreeDaysByDay],
+  )
   if (!cal) return null
 
   const { monthly, peak, nowMonth, gapMonth, isGap, isJune, suggestions, autumnGapMonth, isAutumnGap, autumnSuggestions } =

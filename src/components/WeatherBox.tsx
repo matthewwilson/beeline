@@ -96,7 +96,7 @@ export function WeatherBox() {
       {hourly && hourly.length > 0 && <HourlyFlightStrip hourly={hourly} />}
       {season === 'auto' && growingDegreeDaysTotal != null && (
         <div className={styles.weatherBloom}>
-          Auto season from live weather · growing season {seasonPhrase(growingDegreeDaysOffsetDays)} · {growingDegreeDaysTotal} Growing degree days so far
+          Auto season from live weather · growing season {seasonPhrase(growingDegreeDaysOffsetDays)} local average · {growingDegreeDaysTotal} growing degree days so far
         </div>
       )}
     </div>

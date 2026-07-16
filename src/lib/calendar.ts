@@ -1,7 +1,8 @@
 import { CONFIDENCE_WEIGHTS, FORAGE } from '../data/forage'
-import { MONTHS, OFF_SEASON_FLOOR } from '../data/bloom'
+import { BLOOM, MONTHS, OFF_SEASON_FLOOR } from '../data/bloom'
 import { GAP_PLANTS } from '../data/plants'
-import { areaFactor, bloomFactorAtDoy, bloomFactorForWindowAtDoy } from './scoring'
+import { confidenceForSource } from '../data/sources'
+import { areaFactor, bloomFactorAtDoy, bloomFactorForWindowAtDoy, bloomFactorForWindowAtGrowingDegreeDays } from './scoring'
 import type { Feature } from '../types'
 
 export interface CalendarResult {
@@ -30,7 +31,7 @@ function gapSuggestions(monthIndex: number): string[] {
 export function forageCalendar(
   features: Feature[],
   nowMonth: number = new Date().getMonth(),
-  growingDegreeDaysOffsetDays = 0,
+  meanCumulativeGrowingDegreeDaysByDay: number[] | null = null,
 ): CalendarResult | null {
   if (!features.length) return null
 
@@ -38,17 +39,21 @@ export function forageCalendar(
     (f) =>
       FORAGE[f.key].base *
       Math.exp(-f.distance / 1500) *
-      (CONFIDENCE_WEIGHTS[f.confidence] ?? 1) *
+      CONFIDENCE_WEIGHTS[confidenceForSource(f.source)] *
       areaFactor(f.area) *
       (f.scoreMultiplier ?? 1),
   )
   const monthly = MONTHS.map((_, m) => {
-    const midDoy = Math.round((m + 0.5) * 30.4) + growingDegreeDaysOffsetDays
+    const midDoy = Math.round((m + 0.5) * 30.4)
+    const meanGrowingDegreeDays = meanCumulativeGrowingDegreeDaysByDay?.[Math.min(364, Math.max(0, midDoy - 1))]
     let sum = 0
     features.forEach((f, i) => {
-      const bloomFactor = f.bloom
-        ? bloomFactorForWindowAtDoy(f.bloom, midDoy, f.offSeasonFloor ?? OFF_SEASON_FLOOR[f.key])
-        : bloomFactorAtDoy(f.key, midDoy)
+      const floor = f.offSeasonFloor ?? OFF_SEASON_FLOOR[f.key]
+      const bloomFactor = meanGrowingDegreeDays != null
+        ? bloomFactorForWindowAtGrowingDegreeDays(f.bloom ?? BLOOM[f.key], meanGrowingDegreeDays, floor)
+        : f.bloom
+          ? bloomFactorForWindowAtDoy(f.bloom, midDoy, floor)
+          : bloomFactorAtDoy(f.key, midDoy)
       sum += weights[i] * bloomFactor
     })
     return sum

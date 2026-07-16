@@ -14,6 +14,24 @@ export type PollenKey = 'yellow' | 'orange' | 'cream' | 'grey' | 'green' | 'purp
 export type PollenName = PollenKey | 'mixed'
 
 export type Confidence = 'observed' | 'surveyed' | 'openStreetMap'
+export type FeatureSourceKey =
+  | 'userObservation'
+  | 'openStreetMap'
+  | 'daeraPriorityHabitats'
+  | 'naturalEnglandPriorityHabitats'
+  | 'natureScotHabitatMap'
+  | 'naturalResourcesWalesPhaseOne'
+  | 'nationalParksWildlifeServiceArticle17'
+  | 'nationalParksWildlifeServiceNativeWoodland'
+  | 'nationalParksWildlifeServiceGrassland'
+
+export type Jurisdiction =
+  | 'northernIreland'
+  | 'republicOfIreland'
+  | 'scotland'
+  | 'england'
+  | 'wales'
+  | 'unsupported'
 export type Season = 'auto' | 'spring' | 'summer' | 'late'
 export type BloomWindow = [number, number, number, number]
 
@@ -61,7 +79,7 @@ export interface Feature {
   lon: number
   distance: number
   dir: string
-  confidence: Confidence
+  source: FeatureSourceKey
   area?: number | null
   geometry?: FeatureGeometry
   bloom?: BloomWindow
@@ -91,4 +109,10 @@ export interface HourlyWeather {
   temperature: number
   windSpeed: number
   precipitation: number
+}
+
+export interface GrowingDegreeDaysProfile {
+  total: number
+  seasonOffsetDays: number
+  meanCumulativeByDay: number[] | null
 }

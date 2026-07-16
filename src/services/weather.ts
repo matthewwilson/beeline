@@ -1,5 +1,6 @@
 import { fetchJson } from './http'
-import type { CurrentWeather, DailyForecast, HourlyWeather } from '../types'
+import { clamp } from '../lib/geo'
+import type { CurrentWeather, DailyForecast, GrowingDegreeDaysProfile, HourlyWeather } from '../types'
 
 // Open-Meteo (keyless, CORS `*`).
 export async function fetchCurrentWeather(lat: number, lon: number): Promise<CurrentWeather | null> {
@@ -61,15 +62,74 @@ export async function fetchHourlyForecast(lat: number, lon: number): Promise<Hou
   return out
 }
 
-// Cumulative growing-degree-days (base 5C) for the year to date. Returns null if the fetch
-// failed, or the running total (0 if the archive returned no daily means).
-export async function fetchGrowingDegreeDaysTotal(lat: number, lon: number): Promise<number | null> {
+function normalisedDayOfYear(isoDate: string): number {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  const utc = Date.UTC(year, month - 1, day)
+  const start = Date.UTC(year, 0, 1)
+  let doy = Math.floor((utc - start) / 86400000) + 1
+  const leap = new Date(Date.UTC(year, 1, 29)).getUTCMonth() === 1
+  if (leap && month > 2) doy--
+  return doy
+}
+
+export function growingDegreeDaysProfileFromDaily(
+  dates: string[],
+  temperatures: Array<number | null>,
+  currentYear: number,
+): GrowingDegreeDaysProfile {
+  const cumulativeByYear = new Map<number, number[]>()
+  for (let index = 0; index < dates.length; index++) {
+    const year = Number(dates[index].slice(0, 4))
+    const monthDay = dates[index].slice(5)
+    if (monthDay === '02-29') continue
+    const curve = cumulativeByYear.get(year) ?? Array.from({ length: 365 }, () => 0)
+    const doyIndex = normalisedDayOfYear(dates[index]) - 1
+    curve[doyIndex] = Math.max(0, (temperatures[index] ?? 5) - 5)
+    cumulativeByYear.set(year, curve)
+  }
+
+  for (const curve of cumulativeByYear.values()) {
+    for (let day = 1; day < curve.length; day++) curve[day] += curve[day - 1]
+  }
+
+  const currentCurve = cumulativeByYear.get(currentYear)
+  const total = currentCurve?.[normalisedDayOfYear(dates.at(-1) ?? `${currentYear}-01-01`) - 1] ?? 0
+  const history = [...cumulativeByYear.entries()]
+    .filter(([year]) => year < currentYear)
+    .map(([, curve]) => curve)
+    .filter((curve) => curve[364] > 0)
+  if (history.length < 5) return { total: Math.round(total), seasonOffsetDays: 0, meanCumulativeByDay: null }
+
+  const meanCumulativeByDay = Array.from({ length: 365 }, (_, day) =>
+    history.reduce((sum, curve) => sum + curve[day], 0) / history.length,
+  )
+  const currentDay = normalisedDayOfYear(dates.at(-1) ?? `${currentYear}-01-01`)
+  let equivalentDay = 1
+  let closest = Number.POSITIVE_INFINITY
+  meanCumulativeByDay.forEach((value, day) => {
+    const difference = Math.abs(value - total)
+    if (difference < closest) {
+      closest = difference
+      equivalentDay = day + 1
+    }
+  })
+  return {
+    total: Math.round(total),
+    seasonOffsetDays: clamp(equivalentDay - currentDay, -25, 25),
+    meanCumulativeByDay,
+  }
+}
+
+// One archive request supplies current thermal time and a rolling local ten-year baseline.
+export async function fetchGrowingDegreeDaysProfile(lat: number, lon: number): Promise<GrowingDegreeDaysProfile | null> {
   const now = new Date()
   const today = now.toISOString().slice(0, 10)
-  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${now.getFullYear()}-01-01&end_date=${today}&daily=temperature_2m_mean&timezone=auto`
-  const data = await fetchJson<{ daily?: { temperature_2m_mean?: Array<number | null> } }>(url, { timeoutMs: 15000 })
+  const startYear = now.getFullYear() - 10
+  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startYear}-01-01&end_date=${today}&daily=temperature_2m_mean&timezone=auto`
+  const data = await fetchJson<{ daily?: { time?: string[]; temperature_2m_mean?: Array<number | null> } }>(url, { timeoutMs: 20000 })
   if (!data) return null
-  const temps = data.daily?.temperature_2m_mean ?? []
-  const growingDegreeDays = temps.reduce<number>((s, x) => s + (x != null ? Math.max(0, x - 5) : 0), 0)
-  return Math.round(growingDegreeDays)
+  const dates = data.daily?.time
+  const temperatures = data.daily?.temperature_2m_mean
+  if (!dates || !temperatures || dates.length !== temperatures.length) return null
+  return growingDegreeDaysProfileFromDaily(dates, temperatures, now.getFullYear())
 }
