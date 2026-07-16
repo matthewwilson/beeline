@@ -1,10 +1,10 @@
 import styles from './controls.module.css'
-import { JURISDICTION_PROFILES } from '../data/jurisdictions'
+import { JURISDICTION_PROFILES } from '../data/jurisdictionProfiles'
 import { useStore } from '../store/useStore'
 
 export function Credits() {
   const jurisdiction = useStore((state) => state.activeJurisdiction)
-  const habitatCredit = JURISDICTION_PROFILES[jurisdiction].habitatCredit
+  const habitatCredit = jurisdiction ? JURISDICTION_PROFILES[jurisdiction].habitatCredit : null
   return (
     <p className={styles.credits}>
       Forage values from Baude et al. (UKCEH/EIDC, OGL). {habitatCredit ? `Habitats from ${habitatCredit}. ` : ''}

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { DesktopRail } from './components/DesktopRail'
 import { ForagePanel } from './components/ForagePanel'
 import { FlowerPicker } from './components/FlowerPicker'
@@ -9,19 +9,26 @@ import { MobileNav } from './components/MobileNav'
 import { MapPanel } from './components/MapPanel'
 import { SetupPanel } from './components/SetupPanel'
 import { MapView } from './map/MapView'
-import { GEOLOCATION_OPTIONS } from './lib/useAddForage'
 import { useIsDesktop } from './lib/useMediaQuery'
 import { useStore } from './store/useStore'
 import { useUiStore } from './store/useUiStore'
 import styles from './App.module.css'
 
+const INITIAL_LOCATION_OPTIONS: PositionOptions = {
+  // A coarse, recently cached position is accurate enough to choose the opening map area and
+  // is much more likely to resolve quickly than requesting a fresh GPS fix.
+  enableHighAccuracy: false,
+  timeout: 10_000,
+  maximumAge: 5 * 60_000,
+}
+
 function locateFirstVisit(flyTo: (lat: number, lon: number, zoom: number) => void): void {
   if (useStore.getState().hives.length > 0) return
   if (!navigator.geolocation) return
   navigator.geolocation.getCurrentPosition(
-    (pos) => flyTo(pos.coords.latitude, pos.coords.longitude, 13),
+    (pos) => flyTo(pos.coords.latitude, pos.coords.longitude, 14),
     () => {},
-    GEOLOCATION_OPTIONS,
+    INITIAL_LOCATION_OPTIONS,
   )
 }
 
@@ -30,8 +37,13 @@ export function App() {
   const flyTo = useUiStore((s) => s.flyTo)
   const view = useUiStore((s) => s.view)
   const isDesktop = useIsDesktop()
+  const requestedInitialLocation = useRef(false)
 
   useEffect(() => {
+    // React Strict Mode runs effects twice in development. Avoid prompting for the same location
+    // twice while preserving the normal one-shot request on first load.
+    if (requestedInitialLocation.current) return
+    requestedInitialLocation.current = true
     init()
     locateFirstVisit(flyTo)
   }, [init, flyTo])

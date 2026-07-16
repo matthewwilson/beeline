@@ -4,7 +4,6 @@ import { makeFeature } from '../lib/features'
 import { buildGrid, scoreGrid, type DroneCongregationAreaCell } from '../lib/droneCongregationArea'
 import { foragePlantByName } from '../data/plants'
 import { confidenceForSource } from '../data/sources'
-import { jurisdictionAt, jurisdictionsWithinRadius } from '../data/jurisdictions'
 import { fetchOverpass, overpassToFeatures } from '../services/overpass'
 import { fetchRegionalHabitats } from '../services/regionalHabitats'
 import { fetchElevations } from '../services/elevation'
@@ -99,7 +98,7 @@ interface BeeState {
   flowers: Flower[]
   myHiveIds: number[]
   activeHive: Hive | null
-  activeJurisdiction: Jurisdiction
+  activeJurisdiction: Jurisdiction | null
   landFeatures: Feature[]
   landCoverAvailable: boolean
   features: Feature[]
@@ -140,6 +139,14 @@ interface BeeState {
 }
 
 export const useStore = create<BeeState>((set, get) => {
+  async function resolveRegionalContext(hive: Hive, token: number) {
+    const { jurisdictionAt, jurisdictionsWithinRadius } = await import('../data/jurisdictions')
+    const jurisdiction = jurisdictionAt(hive)
+    const jurisdictions = jurisdictionsWithinRadius(hive, 5000)
+    if (token === selectionToken) set({ activeJurisdiction: jurisdiction })
+    return { jurisdiction, jurisdictions }
+  }
+
   async function loadWeather(hive: Hive, token: number) {
     set((s) => ({
       weather: {
@@ -186,7 +193,13 @@ export const useStore = create<BeeState>((set, get) => {
     }))
   }
 
-  async function loadBiosecurity(hive: Hive, jurisdiction: Jurisdiction, token: number) {
+  async function loadBiosecurity(
+    hive: Hive,
+    regionalContext: ReturnType<typeof resolveRegionalContext>,
+    token: number,
+  ) {
+    const { jurisdiction } = await regionalContext
+    if (token !== selectionToken) return
     if (jurisdiction === 'unsupported') {
       set({ biosecurity: initialBio })
       return
@@ -204,7 +217,11 @@ export const useStore = create<BeeState>((set, get) => {
     })
   }
 
-  async function loadForage(hive: Hive, token: number) {
+  async function loadForage(
+    hive: Hive,
+    regionalContext: ReturnType<typeof resolveRegionalContext>,
+    token: number,
+  ) {
     set({
       forageStatus: 'scanning',
       landFeatures: [],
@@ -214,9 +231,14 @@ export const useStore = create<BeeState>((set, get) => {
       droneCongregationAreaStatus: get().showDroneCongregationArea ? 'loading' : 'idle',
       status: 'Reading the landscape around this hive…',
     })
+    // Start OpenStreetMap immediately while the less frequently needed regional boundary data
+    // downloads in its own chunk. Habitat loading begins as soon as that classification resolves.
+    const elementsPromise = fetchOverpass(hive.lat, hive.lon)
+    const { jurisdictions } = await regionalContext
+    if (token !== selectionToken) return
     const [elements, habitatResult] = await Promise.all([
-      fetchOverpass(hive.lat, hive.lon),
-      fetchRegionalHabitats(jurisdictionsWithinRadius(hive, 5000), hive),
+      elementsPromise,
+      fetchRegionalHabitats(jurisdictions, hive),
     ])
     if (token !== selectionToken) return
 
@@ -257,7 +279,7 @@ export const useStore = create<BeeState>((set, get) => {
     flowers: [],
     myHiveIds: [],
     activeHive: null,
-    activeJurisdiction: 'unsupported',
+    activeJurisdiction: null,
     landFeatures: [],
     landCoverAvailable: false,
     features: [],
@@ -305,11 +327,11 @@ export const useStore = create<BeeState>((set, get) => {
 
     selectHive: (hive) => {
       const token = ++selectionToken
-      const jurisdiction = jurisdictionAt(hive)
-      set({ activeHive: hive, activeJurisdiction: jurisdiction })
+      const regionalContext = resolveRegionalContext(hive, token)
+      set({ activeHive: hive, activeJurisdiction: null })
       void loadWeather(hive, token)
-      void loadBiosecurity(hive, jurisdiction, token)
-      void loadForage(hive, token)
+      void loadBiosecurity(hive, regionalContext, token)
+      void loadForage(hive, regionalContext, token)
     },
 
     // Adding a hive is a two-step flow like adding a flower: pick the spot, then name it
@@ -346,7 +368,7 @@ export const useStore = create<BeeState>((set, get) => {
         selectionToken++
         set({
           activeHive: null,
-          activeJurisdiction: 'unsupported',
+          activeJurisdiction: null,
           features: [],
           landFeatures: [],
           landCoverAvailable: false,

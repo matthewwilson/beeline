@@ -7,6 +7,38 @@ const BASE_PATH = '/'
 
 export default defineConfig({
   base: BASE_PATH,
+  build: {
+    rolldownOptions: {
+      output: {
+        // Keep stable, independently cacheable dependencies away from the application code.
+        // The regional boundary dataset is also isolated because it is large but changes rarely.
+        codeSplitting: {
+          groups: [
+            {
+              name: 'jurisdiction-boundaries',
+              test: /jurisdictionBoundaries\.json$/,
+              priority: 30,
+            },
+            {
+              name: 'react-vendor',
+              test: /node_modules[\\/](?:react|react-dom|scheduler)[\\/]/,
+              priority: 20,
+            },
+            {
+              name: 'map-vendor',
+              test: /node_modules[\\/]leaflet[\\/]/,
+              priority: 20,
+            },
+            {
+              name: 'icon-vendor',
+              test: /node_modules[\\/]@fortawesome[\\/]/,
+              priority: 20,
+            },
+          ],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({

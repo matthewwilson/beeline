@@ -1,12 +1,12 @@
 import { useStore } from '../store/useStore'
-import { JURISDICTION_PROFILES } from '../data/jurisdictions'
+import { JURISDICTION_PROFILES } from '../data/jurisdictionProfiles'
 import styles from './results.module.css'
 
 export function BiosecurityPanel() {
   const activeHive = useStore((s) => s.activeHive)
   const jurisdiction = useStore((s) => s.activeJurisdiction)
   const { loading, hornetCount, provider, failed } = useStore((s) => s.biosecurity)
-  if (!activeHive || jurisdiction === 'unsupported') return null
+  if (!activeHive || !jurisdiction || jurisdiction === 'unsupported') return null
   const profile = JURISDICTION_PROFILES[jurisdiction]
 
   return (

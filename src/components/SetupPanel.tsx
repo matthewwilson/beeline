@@ -3,7 +3,7 @@ import { Credits } from './Credits'
 import { SeasonSelect } from './SeasonSelect'
 import { Section } from './Section'
 import styles from './workspace.module.css'
-import { JURISDICTION_PROFILES } from '../data/jurisdictions'
+import { JURISDICTION_PROFILES } from '../data/jurisdictionProfiles'
 
 interface SetupPanelProps {
   isDesktop: boolean
@@ -29,7 +29,8 @@ export function SetupPanel({ isDesktop }: SetupPanelProps) {
             <div>
               <strong>{activeHive.name}</strong>
               <p className={styles.hiveMeta}>
-                {myHiveIds.includes(activeHive.id) ? 'Your hive' : 'Saved hive'} · {JURISDICTION_PROFILES[activeJurisdiction].label}
+                {myHiveIds.includes(activeHive.id) ? 'Your hive' : 'Saved hive'} ·{' '}
+                {activeJurisdiction ? JURISDICTION_PROFILES[activeJurisdiction].label : 'Finding region…'}
               </p>
               {activeJurisdiction === 'unsupported' && (
                 <p className="hint">Regional habitat and biosecurity guidance is unavailable here. OpenStreetMap and weather still apply.</p>
