@@ -86,6 +86,10 @@ export function MapPanel({ isDesktop, className = '', id }: MapPanelProps) {
       <Section title="Forage legend">
         <ForageLegend />
       </Section>
+
+      <a className={styles.aboutLink} href="/about/">
+        How BeeLine predicts forage
+      </a>
     </aside>
   )
 }

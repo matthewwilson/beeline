@@ -66,7 +66,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,woff2,png,svg,ico}'],
         // The large 512px icons are only used by the OS installer, not the running shell.
-        globIgnores: ['**/icons/pwa-512.png', '**/icons/maskable-512.png'],
+        globIgnores: ['**/icons/pwa-512.png', '**/icons/maskable-512.png', '**/social-card.png'],
         navigateFallback: `${BASE_PATH}index.html`,
         cleanupOutdatedCaches: true,
         // Offline is app-shell only: tiles, Overpass, national habitat services,

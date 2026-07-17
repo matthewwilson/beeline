@@ -108,3 +108,23 @@
 .mobileSpacer {
   height: calc(var(--nav-h) + env(safe-area-inset-bottom));
 }
+
+.aboutLink {
+  display: inline-block;
+  margin-top: var(--space-5);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--wax-dim);
+}
+
+.aboutLink::after {
+  content: ' →';
+  color: var(--honey);
+}
+
+.aboutLink:hover {
+  color: var(--honey-soft);
+}

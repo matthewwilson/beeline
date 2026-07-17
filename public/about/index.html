@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>How BeeLine predicts honeybee forage</title>
+    <meta
+      name="description"
+      content="Learn how BeeLine maps likely honeybee forage using distance, nectar and pollen value, bloom timing, habitat confidence and live weather data."
+    />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="theme-color" content="#120d07" />
+    <meta name="color-scheme" content="dark" />
+
+    <link rel="canonical" href="https://beeline.joyfulhoney.co.uk/about/" />
+    <link rel="alternate" hreflang="en-GB" href="https://beeline.joyfulhoney.co.uk/about/" />
+    <link rel="alternate" hreflang="x-default" href="https://beeline.joyfulhoney.co.uk/about/" />
+    <link rel="icon" href="/icons/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/about/styles.css" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BeeLine" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:url" content="https://beeline.joyfulhoney.co.uk/about/" />
+    <meta property="og:title" content="How BeeLine predicts honeybee forage" />
+    <meta
+      property="og:description"
+      content="From habitat and bloom timing to distance and weather: the thinking behind BeeLine's forage map."
+    />
+    <meta property="og:image" content="https://beeline.joyfulhoney.co.uk/social-card.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="BeeLine bee marker over a forage map with the words Follow the forage"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="How BeeLine predicts honeybee forage" />
+    <meta
+      name="twitter:description"
+      content="From habitat and bloom timing to distance and weather: the thinking behind BeeLine's forage map."
+    />
+    <meta name="twitter:image" content="https://beeline.joyfulhoney.co.uk/social-card.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "AboutPage",
+        "@id": "https://beeline.joyfulhoney.co.uk/about/#page",
+        "url": "https://beeline.joyfulhoney.co.uk/about/",
+        "name": "How BeeLine predicts honeybee forage",
+        "description": "The methodology, coverage, data sources and privacy principles behind the BeeLine forage map.",
+        "inLanguage": "en-GB",
+        "isPartOf": {
+          "@id": "https://beeline.joyfulhoney.co.uk/#website"
+        },
+        "mainEntity": {
+          "@id": "https://beeline.joyfulhoney.co.uk/#application"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="BeeLine map">
+        <img src="/icons/apple-touch-icon.png" width="44" height="44" alt="" />
+        <span><strong>BeeLine</strong><small>forage map</small></span>
+      </a>
+      <a class="header-action" href="/">Open the map <span aria-hidden="true">→</span></a>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Inside the model</p>
+          <h1>Know the landscape your bees are working.</h1>
+          <p class="lede">
+            BeeLine turns open habitat data, bloom timing and the well-understood shape of a
+            honeybee foraging trip into a practical map for beekeepers.
+          </p>
+          <a class="primary-action" href="/">Map your hive <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <img src="/icons/pwa-512.png" width="512" height="512" alt="" />
+        </div>
+      </section>
+
+      <section class="principle" aria-labelledby="prediction-title">
+        <div>
+          <p class="eyebrow">A prediction, not a tracker</p>
+          <h2 id="prediction-title">Where would a bee choose to fly?</h2>
+        </div>
+        <div class="prose">
+          <p>
+            Worker bees are not carrying GPS devices. BeeLine does not claim to show their exact
+            journeys. It estimates the destinations that make biological sense: rich nectar and
+            pollen sources, in bloom now, with nearer sources favoured over equally good ones farther away.
+          </p>
+          <p>
+            Most honeybee foraging happens within roughly one to two kilometres of the hive, though
+            bees can travel around five kilometres when worthwhile forage demands it. BeeLine maps
+            that wider range while applying a strong distance cost to every candidate destination.
+          </p>
+        </div>
+      </section>
+
+      <section class="model" aria-labelledby="model-title">
+        <p class="eyebrow">The forage score</p>
+        <h2 id="model-title">Four signals shape every ranking.</h2>
+        <ol class="signal-grid">
+          <li>
+            <span>01</span>
+            <h3>Forage value</h3>
+            <p>Research-grounded relative nectar and pollen values give richer habitats a stronger starting score.</p>
+          </li>
+          <li>
+            <span>02</span>
+            <h3>Season and bloom</h3>
+            <p>Plant bloom windows and local growing degree days adjust the map as the flowering season moves.</p>
+          </li>
+          <li>
+            <span>03</span>
+            <h3>Flight distance</h3>
+            <p>A distance-decay curve favours nearby rewards while retaining exceptional forage farther from home.</p>
+          </li>
+          <li>
+            <span>04</span>
+            <h3>Source confidence</h3>
+            <p>Your own observations rank above surveyed habitats, which rank above broad open-map classifications.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="coverage" aria-labelledby="coverage-title">
+        <div class="coverage-copy">
+          <p class="eyebrow">Local context</p>
+          <h2 id="coverage-title">Built for beekeeping across Britain and Ireland.</h2>
+          <p>
+            BeeLine combines OpenStreetMap land cover with authoritative habitat inventories where
+            regional services are available. It automatically selects the appropriate habitat,
+            bee-health and yellow-legged hornet guidance for Northern Ireland, Ireland, Scotland,
+            England or Wales.
+          </p>
+          <p>
+            Live weather helps answer whether bees are likely flying today. A forage calendar shows
+            how availability changes through the year and highlights potential lean periods such as
+            the June gap.
+          </p>
+        </div>
+        <dl>
+          <div><dt>1–5 km</dt><dd>Foraging range modelled around each hive</dd></div>
+          <div><dt>Live</dt><dd>Weather, habitat and biosecurity requests</dd></div>
+          <div><dt>Local</dt><dd>Your hives and sightings stay in this browser</dd></div>
+        </dl>
+      </section>
+
+      <section class="privacy" aria-labelledby="privacy-title">
+        <p class="eyebrow">Private by design</p>
+        <h2 id="privacy-title">No account. No hive database.</h2>
+        <p>
+          BeeLine is a client-only web app. Hive locations and flower sightings are stored on your
+          device in browser storage, not sent to a BeeLine server. Live map, habitat, weather,
+          elevation and biosecurity information is requested directly from open third-party services.
+        </p>
+      </section>
+
+      <section class="sources" aria-labelledby="sources-title">
+        <div>
+          <p class="eyebrow">Transparent sources</p>
+          <h2 id="sources-title">Open data, visible assumptions.</h2>
+        </div>
+        <div class="prose">
+          <p>
+            The map uses OpenStreetMap, national habitat inventories, Open-Meteo weather and
+            elevation, NBN Atlas and GBIF occurrence records and published UK nectar and pollen
+            research. Model assumptions and data provenance are documented with the source code.
+          </p>
+          <p class="source-links">
+            <a href="https://github.com/matthewwilson/beeline/blob/main/references/forage-values.md">Forage values</a>
+            <a href="https://github.com/matthewwilson/beeline/blob/main/references/regional-data.md">Regional data</a>
+            <a href="https://github.com/matthewwilson/beeline">Source code</a>
+          </p>
+        </div>
+      </section>
+
+      <section class="closing">
+        <p class="eyebrow">Ready to explore?</p>
+        <h2>Drop a hive. Follow the forage.</h2>
+        <a class="primary-action" href="/">Open BeeLine <span aria-hidden="true">→</span></a>
+      </section>
+    </main>
+
+    <footer>
+      <p>BeeLine is a planning aid, not a direct record of bee movements.</p>
+      <a href="/">Back to the map</a>
+    </footer>
+  </body>
+</html>

@@ -1,19 +1,137 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>BeeLine — where are your bees foraging?</title>
+    <title>BeeLine | Bee forage map for beekeepers</title>
     <meta
       name="description"
-      content="Predict where your bees forage: a forage, pollen and hive map for beekeepers."
+      content="Map likely honeybee forage around your hives, rank nectar and pollen sources and track bloom, weather and biosecurity across Britain and Ireland."
     />
+    <meta name="application-name" content="BeeLine" />
+    <meta name="author" content="BeeLine" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#f6a800" />
+    <style>
+      .no-script {
+        min-height: 100vh;
+        display: grid;
+        place-content: center;
+        gap: 12px;
+        max-width: 680px;
+        margin: auto;
+        padding: 32px;
+        color: #f3e7cc;
+        background: #120d07;
+        font: 18px/1.6 system-ui, sans-serif;
+      }
+      .no-script h1 {
+        margin: 0;
+        color: #ffce5b;
+        font: 600 42px/1.05 Georgia, serif;
+      }
+      .no-script a {
+        color: #f6a800;
+      }
+    </style>
+
+    <link rel="canonical" href="https://beeline.joyfulhoney.co.uk/" />
+    <link rel="alternate" hreflang="en-GB" href="https://beeline.joyfulhoney.co.uk/" />
+    <link rel="alternate" hreflang="x-default" href="https://beeline.joyfulhoney.co.uk/" />
     <link rel="icon" href="icons/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BeeLine" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:url" content="https://beeline.joyfulhoney.co.uk/" />
+    <meta property="og:title" content="BeeLine | See where your bees are foraging" />
+    <meta
+      property="og:description"
+      content="Map likely honeybee forage, rank nearby nectar and pollen sources and follow bloom, weather and biosecurity around your hives."
+    />
+    <meta property="og:image" content="https://beeline.joyfulhoney.co.uk/social-card.png" />
+    <meta property="og:image:secure_url" content="https://beeline.joyfulhoney.co.uk/social-card.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="BeeLine bee marker over a forage map with the words Follow the forage"
+    />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="BeeLine | See where your bees are foraging" />
+    <meta
+      name="twitter:description"
+      content="Map likely honeybee forage, rank nearby nectar and pollen sources and follow bloom, weather and biosecurity around your hives."
+    />
+    <meta name="twitter:image" content="https://beeline.joyfulhoney.co.uk/social-card.png" />
+    <meta
+      name="twitter:image:alt"
+      content="BeeLine bee marker over a forage map with the words Follow the forage"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://beeline.joyfulhoney.co.uk/#website",
+            "url": "https://beeline.joyfulhoney.co.uk/",
+            "name": "BeeLine",
+            "description": "A honeybee forage, pollen and hive map for beekeepers.",
+            "inLanguage": "en-GB"
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://beeline.joyfulhoney.co.uk/#application",
+            "name": "BeeLine",
+            "url": "https://beeline.joyfulhoney.co.uk/",
+            "description": "A honeybee forage, pollen and hive map for beekeepers across Britain and Ireland.",
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "Any",
+            "browserRequirements": "Requires JavaScript and a modern web browser",
+            "isAccessibleForFree": true,
+            "inLanguage": "en-GB",
+            "image": "https://beeline.joyfulhoney.co.uk/social-card.png",
+            "audience": {
+              "@type": "Audience",
+              "audienceType": "Beekeepers"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "GBP"
+            },
+            "featureList": [
+              "Likely honeybee forage destinations",
+              "Nectar and pollen source ranking",
+              "Bloom calendar and weather conditions",
+              "Regional habitat and biosecurity information"
+            ],
+            "isPartOf": {
+              "@id": "https://beeline.joyfulhoney.co.uk/#website"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <noscript>
+        <main class="no-script">
+          <h1>BeeLine bee forage map</h1>
+          <p>
+            BeeLine needs JavaScript to map likely honeybee forage around your hives. Read
+            <a href="/about/">how the forage prediction works</a>, or enable JavaScript to open the map.
+          </p>
+        </main>
+      </noscript>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
