@@ -1,3 +1,4 @@
+import { captureEvent } from '../lib/analytics'
 import { useStore } from '../store/useStore'
 import { ToggleSwitch } from './ToggleSwitch'
 import styles from './controls.module.css'
@@ -20,9 +21,14 @@ export function DroneCongregationAreaPanel() {
   const toggleDroneCongregationArea = useStore((s) => s.toggleDroneCongregationArea)
   const droneCongregationAreaStatus = useStore((s) => s.droneCongregationAreaStatus)
 
+  const handleToggle = () => {
+    captureEvent('drone_congregation_area_toggled', { enabled: !showDroneCongregationArea })
+    toggleDroneCongregationArea()
+  }
+
   return (
     <>
-      <ToggleSwitch label="Show drone congregation areas" checked={showDroneCongregationArea} onToggle={toggleDroneCongregationArea} />
+      <ToggleSwitch label="Show drone congregation areas" checked={showDroneCongregationArea} onToggle={handleToggle} />
 
       {showDroneCongregationArea && !activeHive && (
         <p className={`hint ${styles.blockHint}`}>Select a hive to map likely drone-gathering spots.</p>

@@ -3,6 +3,7 @@ import { faMapLocationDot } from '@fortawesome/free-solid-svg-icons/faMapLocatio
 import { faSpa } from '@fortawesome/free-solid-svg-icons/faSpa'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { captureEvent } from '../lib/analytics'
 import { useUiStore } from '../store/useUiStore'
 import type { WorkspaceView } from '../store/useUiStore'
 import styles from './desktoprail.module.css'
@@ -32,7 +33,10 @@ export function DesktopRail() {
               type="button"
               className={`${styles.item} ${active ? styles.itemActive : ''}`}
               aria-current={active ? 'page' : undefined}
-              onClick={() => setView(item.view)}
+              onClick={() => {
+                setView(item.view)
+                if (!active) captureEvent('workspace_view_changed', { view: item.view, layout: 'desktop' })
+              }}
             >
               <FontAwesomeIcon icon={item.icon} className={styles.icon} />
               <span>{item.label}</span>

@@ -1,3 +1,4 @@
+import { captureEvent } from '../lib/analytics'
 import { useStore } from '../store/useStore'
 import { Credits } from './Credits'
 import { SeasonSelect } from './SeasonSelect'
@@ -36,7 +37,14 @@ export function SetupPanel({ isDesktop }: SetupPanelProps) {
                 <p className="hint">Regional habitat and biosecurity guidance is unavailable here. OpenStreetMap and weather still apply.</p>
               )}
             </div>
-            <button type="button" className={styles.removeLink} onClick={() => removeHive(activeHive.id)}>
+            <button
+              type="button"
+              className={styles.removeLink}
+              onClick={() => {
+                removeHive(activeHive.id)
+                captureEvent('hive_removed', {})
+              }}
+            >
               Remove
             </button>
           </div>

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { captureEvent } from '../lib/analytics'
 import { FORAGE } from '../data/forage'
 import { POLLEN, pollenColour } from '../data/pollen'
 import { confidenceContributions, sourceDisplay } from '../lib/confidence'
@@ -53,7 +54,14 @@ export function DestinationList() {
                 type="button"
                 className={`${styles.dest} ${matches ? '' : styles.dim}`}
                 style={{ animationDelay: `${i * 40}ms` }}
-                onClick={() => flyTo(f.lat, f.lon, 15)}
+                onClick={() => {
+                  flyTo(f.lat, f.lon, 15)
+                  captureEvent('forage_destination_viewed', {
+                    forage_key: f.key,
+                    rank: i + 1,
+                    relative_score_percent: f.pct,
+                  })
+                }}
               >
                 <span className={styles.cell} style={{ background: pollenColour(meta.pollen) }} aria-hidden="true" />
                 <span className={styles.destBody}>

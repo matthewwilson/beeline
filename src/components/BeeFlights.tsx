@@ -1,3 +1,4 @@
+import { captureEvent } from '../lib/analytics'
 import { BANDS } from '../lib/beeFlights'
 import { useStore } from '../store/useStore'
 import { ToggleSwitch } from './ToggleSwitch'
@@ -8,9 +9,14 @@ export function BeeFlights() {
   const showBeeFlights = useStore((s) => s.showBeeFlights)
   const toggleBeeFlights = useStore((s) => s.toggleBeeFlights)
 
+  const handleToggle = () => {
+    captureEvent('bee_flights_toggled', { enabled: !showBeeFlights })
+    toggleBeeFlights()
+  }
+
   return (
     <>
-      <ToggleSwitch label="Animate foraging flights" checked={showBeeFlights} onToggle={toggleBeeFlights} />
+      <ToggleSwitch label="Animate foraging flights" checked={showBeeFlights} onToggle={handleToggle} />
 
       {showBeeFlights && !activeHive && (
         <p className={`hint ${styles.blockHint}`}>Select a hive to watch its bees fly.</p>

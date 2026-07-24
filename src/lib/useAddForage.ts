@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import type { ChangeEvent } from 'react'
+import { captureEvent } from './analytics'
 import { useStore } from '../store/useStore'
 import { useUiStore } from '../store/useUiStore'
 
@@ -81,6 +82,7 @@ export function useAddForage() {
       return
     }
     requestFlowerAt(location.lat, location.lon)
+    captureEvent('flower_photo_location_read', { has_date: location.takenAt !== null })
     setStatus(foundMessage(location.takenAt))
   }
 

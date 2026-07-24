@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import { FORAGE, MATING_RADIUS_KILOMETRES, MAX_MARKERS, RING_KILOMETRES } from '../data/forage'
+import { captureEvent } from '../lib/analytics'
 import { POLLEN, pollenColour } from '../data/pollen'
 import { createBees, stepBee } from '../lib/beeFlights'
 import type { Bee } from '../lib/beeFlights'
@@ -156,7 +157,10 @@ export function MapView() {
       const active = activeHive?.id === h.id
       const marker = L.marker([h.lat, h.lon], { icon: beeIcon(mine, active), title: h.name })
       marker.bindTooltip(mine ? `${h.name} · your hive` : h.name, { direction: 'top', offset: [0, -16] })
-      marker.on('click', () => useStore.getState().selectHive(h))
+      marker.on('click', () => {
+        useStore.getState().selectHive(h)
+        captureEvent('hive_selected', {})
+      })
       marker.addTo(group)
     }
   }, [map, hives, myHiveIds, activeHive])
@@ -190,6 +194,7 @@ export function MapView() {
         btn?.addEventListener('click', () => {
           map.closePopup()
           useStore.getState().removeFlower(f.id)
+          captureEvent('flower_removed', {})
         })
       })
       marker.addTo(group)

@@ -1,3 +1,4 @@
+import { captureEvent } from '../lib/analytics'
 import { POLLEN } from '../data/pollen'
 import { useStore } from '../store/useStore'
 import type { PollenKey } from '../types'
@@ -12,6 +13,7 @@ export function PollenSwatches() {
 
   const pick = (k: PollenKey) => {
     const clearing = selectedPollen === k
+    captureEvent('pollen_filter_toggled', { pollen_key: k, action: clearing ? 'cleared' : 'applied' })
     togglePollen(k)
     setStatus(clearing ? '' : `Highlighting ${POLLEN[k].label.toLowerCase()} pollen sources (${POLLEN[k].note})`)
   }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { captureEvent } from '../lib/analytics'
 import { useStore } from '../store/useStore'
 import { useUiStore } from '../store/useUiStore'
 import styles from './flowerpicker.module.css'
@@ -20,6 +21,7 @@ export function HiveNamePicker() {
 
   const onSave = () => {
     saveHive(name)
+    captureEvent('hive_added', { used_custom_name: name.trim().length > 0 })
     setName('')
     setView('map')
   }

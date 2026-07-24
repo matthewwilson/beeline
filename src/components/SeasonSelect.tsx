@@ -1,3 +1,4 @@
+import { captureEvent } from '../lib/analytics'
 import { useStore } from '../store/useStore'
 import type { Season } from '../types'
 
@@ -16,7 +17,11 @@ export function SeasonSelect() {
       className="select"
       name="season"
       value={season}
-      onChange={(e) => setSeason(e.target.value as Season)}
+      onChange={(e) => {
+        const next = e.target.value as Season
+        captureEvent('season_changed', { season: next })
+        setSeason(next)
+      }}
       aria-label="Season"
     >
       {OPTIONS.map((o) => (

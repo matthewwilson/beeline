@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { distanceMetres } from '../lib/geo'
+import { captureEvent } from '../lib/analytics'
 import { makeFeature } from '../lib/features'
 import { buildGrid, scoreGrid, type DroneCongregationAreaCell } from '../lib/droneCongregationArea'
 import { foragePlantByName } from '../data/plants'
@@ -252,6 +253,11 @@ export const useStore = create<BeeState>((set, get) => {
     else if (features.length === 0) forageStatus = 'empty'
 
     set({ landFeatures: land, landCoverAvailable, features, forageStatus, status: '' })
+    captureEvent('forage_results_loaded', {
+      feature_count: features.length,
+      land_cover_available: landCoverAvailable,
+      status: forageStatus,
+    })
 
     if (get().showDroneCongregationArea) void loadDroneCongregationArea(hive, token)
   }

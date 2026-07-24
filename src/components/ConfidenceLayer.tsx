@@ -1,3 +1,4 @@
+import { captureEvent } from '../lib/analytics'
 import { CONFIDENCE_DISPLAY } from '../lib/confidence'
 import { useStore } from '../store/useStore'
 import { ToggleSwitch } from './ToggleSwitch'
@@ -13,9 +14,14 @@ export function ConfidenceLayer() {
   const showConfidenceLayer = useStore((s) => s.showConfidenceLayer)
   const toggleConfidenceLayer = useStore((s) => s.toggleConfidenceLayer)
 
+  const handleToggle = () => {
+    captureEvent('confidence_layer_toggled', { enabled: !showConfidenceLayer })
+    toggleConfidenceLayer()
+  }
+
   return (
     <>
-      <ToggleSwitch label="Show data confidence" checked={showConfidenceLayer} onToggle={toggleConfidenceLayer} />
+      <ToggleSwitch label="Show data confidence" checked={showConfidenceLayer} onToggle={handleToggle} />
 
       {showConfidenceLayer && (
         <ul className={styles.bandLegend}>

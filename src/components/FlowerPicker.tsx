@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { captureEvent } from '../lib/analytics'
 import { FORAGE_PLANTS, OTHER_FLOWER_KEY } from '../data/plants'
 import { useStore } from '../store/useStore'
 import type { ForageKey } from '../types'
@@ -33,6 +34,7 @@ export function FlowerPicker() {
       key = p.key
     }
     saveFlower(plant, key, note)
+    captureEvent('flower_added', { forage_key: key, has_note: note.trim().length > 0 })
     reset()
   }
 

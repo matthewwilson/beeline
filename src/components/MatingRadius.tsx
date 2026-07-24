@@ -1,3 +1,4 @@
+import { captureEvent } from '../lib/analytics'
 import { MATING_RADIUS_KILOMETRES } from '../data/forage'
 import { useStore } from '../store/useStore'
 import { ToggleSwitch } from './ToggleSwitch'
@@ -8,9 +9,14 @@ export function MatingRadius() {
   const showMatingRadius = useStore((s) => s.showMatingRadius)
   const toggleMatingRadius = useStore((s) => s.toggleMatingRadius)
 
+  const handleToggle = () => {
+    captureEvent('mating_radius_toggled', { enabled: !showMatingRadius })
+    toggleMatingRadius()
+  }
+
   return (
     <>
-      <ToggleSwitch label="Queen mating flight radius" checked={showMatingRadius} onToggle={toggleMatingRadius} />
+      <ToggleSwitch label="Queen mating flight radius" checked={showMatingRadius} onToggle={handleToggle} />
 
       {showMatingRadius && !activeHive && (
         <p className={`hint ${styles.blockHint}`}>Select a hive to see the queen's mating range.</p>

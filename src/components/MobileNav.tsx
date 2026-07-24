@@ -3,6 +3,7 @@ import { faMapLocationDot } from '@fortawesome/free-solid-svg-icons/faMapLocatio
 import { faSpa } from '@fortawesome/free-solid-svg-icons/faSpa'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { captureEvent } from '../lib/analytics'
 import { useUiStore } from '../store/useUiStore'
 import type { WorkspaceView } from '../store/useUiStore'
 import styles from './mobilenav.module.css'
@@ -28,7 +29,10 @@ export function MobileNav() {
             className={`${styles.tab} ${active ? styles.tabActive : ''}`}
             aria-current={active ? 'page' : undefined}
             aria-label={label}
-            onClick={() => setView(view)}
+            onClick={() => {
+              setView(view)
+              if (!active) captureEvent('workspace_view_changed', { view, layout: 'mobile' })
+            }}
           >
             <FontAwesomeIcon icon={icon} className={styles.icon} />
             {label}
