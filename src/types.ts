@@ -35,6 +35,20 @@ export type Jurisdiction =
 export type Season = 'auto' | 'spring' | 'summer' | 'late'
 export type BloomWindow = [number, number, number, number]
 
+export type HabitatNetworkKey =
+  | 'lowlandMeadow'
+  | 'traditionalOrchard'
+  | 'deciduousWoodland'
+  | 'woodPastureAndParkland'
+  | 'heath'
+
+export type HabitatNetworkClass =
+  | 'Restorable Habitat'
+  | 'Fragmentation Action Zone'
+  | 'Network Enhancement Zone 1'
+  | 'Network Enhancement Zone 2'
+  | 'Network Expansion Zone'
+
 export interface ForageMeta {
   label: string
   base: number
@@ -85,6 +99,14 @@ export interface Feature {
   bloom?: BloomWindow
   offSeasonFloor?: number
   scoreMultiplier?: number
+}
+
+// Nature Recovery Network polygons are decision-support evidence, not present forage.
+// Keep them structurally separate from Feature so they cannot enter scoring or bee flights.
+export interface HabitatOpportunity {
+  habitat: HabitatNetworkKey
+  networkClass: HabitatNetworkClass
+  geometry: Extract<FeatureGeometry, { type: 'Polygon' | 'MultiPolygon' }>
 }
 
 export interface ScoredFeature extends Feature {

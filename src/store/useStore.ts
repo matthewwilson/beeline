@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { HABITAT_NETWORKS_ENABLED } from '../config/features'
 import { distanceMetres } from '../lib/geo'
 import { captureEvent } from '../lib/analytics'
 import { makeFeature } from '../lib/features'
@@ -18,13 +19,28 @@ import {
   saveHives,
   saveMyHiveIds,
 } from '../storage'
-import type { CurrentWeather, DailyForecast, Feature, Flower, ForageKey, Hive, HourlyWeather, Jurisdiction, LatLon, PollenKey, Season } from '../types'
+import type {
+  CurrentWeather,
+  DailyForecast,
+  Feature,
+  Flower,
+  ForageKey,
+  HabitatNetworkKey,
+  HabitatOpportunity,
+  Hive,
+  HourlyWeather,
+  Jurisdiction,
+  LatLon,
+  PollenKey,
+  Season,
+} from '../types'
 
 export type ForageStatus = 'idle' | 'scanning' | 'busy' | 'empty' | 'ready'
 
 // Partial statuses say which live input was missing. If both land cover and elevation fail, the
 // model still renders a low-confidence neutral grid rather than throwing into the UI.
 export type DroneCongregationAreaStatus = 'idle' | 'loading' | 'ready' | 'partial-elevation' | 'partial-land-cover' | 'partial'
+export type HabitatOpportunityStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'unavailable'
 
 interface WeatherState {
   current: CurrentWeather | null
@@ -57,6 +73,7 @@ const initialBio: BioState = { loading: false, hornetCount: null, provider: null
 // Guards against stale async results when the user switches hives mid-fetch.
 let selectionToken = 0
 let droneCongregationAreaToken = 0
+let habitatOpportunityToken = 0
 
 function flowerFeatures(flowers: Flower[], hive: LatLon): Feature[] {
   return flowers.map((f) => {
@@ -117,6 +134,10 @@ interface BeeState {
   showDroneCongregationArea: boolean
   droneCongregationAreaCells: DroneCongregationAreaCell[]
   droneCongregationAreaStatus: DroneCongregationAreaStatus
+  showHabitatOpportunities: boolean
+  selectedHabitatNetwork: HabitatNetworkKey
+  habitatOpportunities: HabitatOpportunity[]
+  habitatOpportunityStatus: HabitatOpportunityStatus
   status: string
 
   init: () => void
@@ -127,6 +148,8 @@ interface BeeState {
   toggleBeeFlights: () => void
   toggleMatingRadius: () => void
   toggleDroneCongregationArea: () => void
+  toggleHabitatOpportunities: () => void
+  selectHabitatNetwork: (network: HabitatNetworkKey) => void
   selectHive: (hive: Hive) => void
   requestHiveAt: (lat: number, lon: number) => void
   saveHive: (name: string) => void
@@ -280,6 +303,47 @@ export const useStore = create<BeeState>((set, get) => {
     set({ droneCongregationAreaCells: cells, droneCongregationAreaStatus })
   }
 
+  async function loadHabitatOpportunities(
+    hive: Hive,
+    token: number,
+    network: HabitatNetworkKey,
+    regionalContext?: ReturnType<typeof resolveRegionalContext>,
+  ) {
+    if (!HABITAT_NETWORKS_ENABLED) return
+    const requestToken = ++habitatOpportunityToken
+    set({ habitatOpportunities: [], habitatOpportunityStatus: 'loading' })
+
+    let jurisdiction = get().activeJurisdiction
+    if (regionalContext) {
+      jurisdiction = (await regionalContext).jurisdiction
+    } else if (jurisdiction === null) {
+      const { jurisdictionAt } = await import('../data/jurisdictions')
+      jurisdiction = jurisdictionAt(hive)
+    }
+    if (token !== selectionToken || requestToken !== habitatOpportunityToken || !get().showHabitatOpportunities) return
+    if (jurisdiction !== 'northernIreland') {
+      set({ habitatOpportunities: [], habitatOpportunityStatus: 'unavailable' })
+      return
+    }
+
+    // Keep this optional feature out of the initial bundle and off the network until the user
+    // explicitly enables its map layer in a permission-enabled build.
+    const { fetchHabitatOpportunities } = await import('../services/habitatNetworks')
+    const opportunities = await fetchHabitatOpportunities(network, hive)
+    if (
+      token !== selectionToken ||
+      requestToken !== habitatOpportunityToken ||
+      !get().showHabitatOpportunities ||
+      get().selectedHabitatNetwork !== network
+    ) {
+      return
+    }
+    set({
+      habitatOpportunities: opportunities ?? [],
+      habitatOpportunityStatus: opportunities === null ? 'unavailable' : opportunities.length ? 'ready' : 'empty',
+    })
+  }
+
   return {
     hives: [],
     flowers: [],
@@ -303,6 +367,10 @@ export const useStore = create<BeeState>((set, get) => {
     showDroneCongregationArea: false,
     droneCongregationAreaCells: [],
     droneCongregationAreaStatus: 'idle',
+    showHabitatOpportunities: false,
+    selectedHabitatNetwork: 'lowlandMeadow',
+    habitatOpportunities: [],
+    habitatOpportunityStatus: 'idle',
     status: '',
 
     init: () => set({ hives: loadHives(), flowers: loadFlowers(), myHiveIds: loadMyHiveIds() }),
@@ -331,13 +399,46 @@ export const useStore = create<BeeState>((set, get) => {
       }
     },
 
+    toggleHabitatOpportunities: () => {
+      if (!HABITAT_NETWORKS_ENABLED) return
+      const on = !get().showHabitatOpportunities
+      set({ showHabitatOpportunities: on })
+      const hive = get().activeHive
+      if (on && hive) void loadHabitatOpportunities(hive, selectionToken, get().selectedHabitatNetwork)
+      else if (!on) {
+        habitatOpportunityToken++
+        set({ habitatOpportunities: [], habitatOpportunityStatus: 'idle' })
+      }
+    },
+
+    selectHabitatNetwork: (network) => {
+      if (!HABITAT_NETWORKS_ENABLED || network === get().selectedHabitatNetwork) return
+      habitatOpportunityToken++
+      set({
+        selectedHabitatNetwork: network,
+        habitatOpportunities: [],
+        habitatOpportunityStatus: get().showHabitatOpportunities && get().activeHive ? 'loading' : 'idle',
+      })
+      const hive = get().activeHive
+      if (get().showHabitatOpportunities && hive) void loadHabitatOpportunities(hive, selectionToken, network)
+    },
+
     selectHive: (hive) => {
       const token = ++selectionToken
+      habitatOpportunityToken++
       const regionalContext = resolveRegionalContext(hive, token)
-      set({ activeHive: hive, activeJurisdiction: null })
+      set({
+        activeHive: hive,
+        activeJurisdiction: null,
+        habitatOpportunities: [],
+        habitatOpportunityStatus: get().showHabitatOpportunities ? 'loading' : 'idle',
+      })
       void loadWeather(hive, token)
       void loadBiosecurity(hive, regionalContext, token)
       void loadForage(hive, regionalContext, token)
+      if (HABITAT_NETWORKS_ENABLED && get().showHabitatOpportunities) {
+        void loadHabitatOpportunities(hive, token, get().selectedHabitatNetwork, regionalContext)
+      }
     },
 
     // Adding a hive is a two-step flow like adding a flower: pick the spot, then name it
@@ -372,6 +473,7 @@ export const useStore = create<BeeState>((set, get) => {
       set({ hives })
       if (get().activeHive?.id === id) {
         selectionToken++
+        habitatOpportunityToken++
         set({
           activeHive: null,
           activeJurisdiction: null,
@@ -380,6 +482,8 @@ export const useStore = create<BeeState>((set, get) => {
           landCoverAvailable: false,
           droneCongregationAreaCells: [],
           droneCongregationAreaStatus: 'idle',
+          habitatOpportunities: [],
+          habitatOpportunityStatus: 'idle',
           forageStatus: 'idle',
           weather: initialWeather,
           biosecurity: initialBio,

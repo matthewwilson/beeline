@@ -1,4 +1,4 @@
-import type { ForageKey, PollenKey, Season } from '../types'
+import type { ForageKey, HabitatNetworkKey, PollenKey, Season } from '../types'
 import type { WorkspaceView } from '../store/useUiStore'
 
 interface AnalyticsEvents {
@@ -13,6 +13,8 @@ interface AnalyticsEvents {
   hive_added: { used_custom_name: boolean }
   hive_removed: Record<string, never>
   hive_selected: Record<string, never>
+  habitat_opportunities_toggled: { enabled: boolean }
+  habitat_network_selected: { network: HabitatNetworkKey }
   mating_radius_toggled: { enabled: boolean }
   pollen_filter_toggled: { pollen_key: PollenKey; action: 'applied' | 'cleared' }
   season_changed: { season: Season }

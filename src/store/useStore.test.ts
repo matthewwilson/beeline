@@ -2,9 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchOverpass, overpassToFeatures } from '../services/overpass'
 import { fetchRegionalHabitats } from '../services/regionalHabitats'
 import { fetchElevations } from '../services/elevation'
+import { fetchHabitatOpportunities } from '../services/habitatNetworks'
 import { fetchDailyForecast, fetchHourlyForecast } from '../services/weather'
 import { useStore } from './useStore'
-import type { DailyForecast, Feature, Hive, HourlyWeather } from '../types'
+import type { DailyForecast, Feature, HabitatOpportunity, Hive, HourlyWeather } from '../types'
 
 // The store orchestrates the service layer; mock it so the tests drive resolution timing
 // and stay offline.
@@ -23,6 +24,7 @@ vi.mock('../services/weather', () => ({
 }))
 vi.mock('../services/biosecurity', () => ({ fetchHornetRecords: vi.fn(async () => null) }))
 vi.mock('../services/elevation', () => ({ fetchElevations: vi.fn(async () => null) }))
+vi.mock('../services/habitatNetworks', () => ({ fetchHabitatOpportunities: vi.fn(async () => []) }))
 vi.mock('../storage', () => ({
   loadHives: () => [],
   loadFlowers: () => [],
@@ -38,7 +40,12 @@ function deferred<T>(): { promise: Promise<T>; resolve: (v: T) => void } {
   return { promise, resolve }
 }
 
-const flush = () => new Promise((r) => setTimeout(r, 0))
+const flush = async () => {
+  // Store flows include a dynamically imported jurisdiction classifier before service results
+  // can commit. Allow both that import and the following promise continuation to settle.
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  await new Promise((resolve) => setTimeout(resolve, 0))
+}
 
 const hiveA: Hive = { id: 1, name: 'A', lat: 54, lon: -6, createdAt: '' }
 const hiveB: Hive = { id: 2, name: 'B', lat: 55, lon: -7, createdAt: '' }
@@ -48,6 +55,7 @@ beforeEach(() => {
   vi.mocked(fetchOverpass).mockResolvedValue([])
   vi.mocked(fetchRegionalHabitats).mockResolvedValue({ features: [], successfulSources: [], failedSources: [] })
   vi.mocked(fetchElevations).mockResolvedValue(null)
+  vi.mocked(fetchHabitatOpportunities).mockResolvedValue([])
   useStore.setState({
     activeHive: null,
     activeJurisdiction: 'unsupported',
@@ -69,6 +77,10 @@ beforeEach(() => {
     showDroneCongregationArea: false,
     droneCongregationAreaCells: [],
     droneCongregationAreaStatus: 'idle',
+    showHabitatOpportunities: false,
+    selectedHabitatNetwork: 'lowlandMeadow',
+    habitatOpportunities: [],
+    habitatOpportunityStatus: 'idle',
   })
 })
 afterEach(() => vi.clearAllMocks())
@@ -90,7 +102,7 @@ describe('selectHive stale-request guard', () => {
 
     // Resolve B (current) then A (stale). A must not clobber B's features.
     second.resolve([])
-    await flush()
+    await vi.waitFor(() => expect(useStore.getState().features[0]?.name).toBe('B'))
     first.resolve([])
     await flush()
 
@@ -112,7 +124,7 @@ describe('selectHive stale-request guard', () => {
     })
 
     useStore.getState().selectHive(hiveA)
-    await flush()
+    await vi.waitFor(() => expect(useStore.getState().landFeatures).toHaveLength(1))
 
     expect(useStore.getState().landFeatures).toHaveLength(1)
     expect(useStore.getState().landFeatures[0].source).toBe('daeraPriorityHabitats')
@@ -178,6 +190,71 @@ describe('map layer toggles', () => {
     expect(useStore.getState().showConfidenceLayer).toBe(true)
     useStore.getState().toggleConfidenceLayer()
     expect(useStore.getState().showConfidenceLayer).toBe(false)
+  })
+})
+
+describe('habitat opportunity loading', () => {
+  const meadowOpportunity: HabitatOpportunity = {
+    habitat: 'lowlandMeadow',
+    networkClass: 'Restorable Habitat',
+    geometry: { type: 'Polygon', coordinates: [[[-5.91, 54.4], [-5.9, 54.41], [-5.89, 54.4], [-5.91, 54.4]]] },
+  }
+
+  it('loads the selected network only after its layer is enabled', async () => {
+    useStore.setState({ activeHive: hiveA, activeJurisdiction: 'northernIreland' })
+    vi.mocked(fetchHabitatOpportunities).mockResolvedValueOnce([meadowOpportunity])
+
+    expect(fetchHabitatOpportunities).not.toHaveBeenCalled()
+    useStore.getState().toggleHabitatOpportunities()
+    await flush()
+
+    expect(fetchHabitatOpportunities).toHaveBeenCalledWith('lowlandMeadow', hiveA)
+    expect(useStore.getState().habitatOpportunityStatus).toBe('ready')
+    expect(useStore.getState().habitatOpportunities).toEqual([meadowOpportunity])
+    expect(useStore.getState().features).toEqual([])
+    expect(useStore.getState().landFeatures).toEqual([])
+  })
+
+  it('discards a slow result after the selected network changes', async () => {
+    const slow = deferred<HabitatOpportunity[] | null>()
+    useStore.setState({ activeHive: hiveA, activeJurisdiction: 'northernIreland' })
+    vi.mocked(fetchHabitatOpportunities).mockReturnValueOnce(slow.promise).mockResolvedValueOnce([])
+
+    useStore.getState().toggleHabitatOpportunities()
+    await flush()
+    useStore.getState().selectHabitatNetwork('heath')
+    await flush()
+    slow.resolve([meadowOpportunity])
+    await flush()
+
+    expect(useStore.getState().selectedHabitatNetwork).toBe('heath')
+    expect(useStore.getState().habitatOpportunities).toEqual([])
+    expect(useStore.getState().habitatOpportunityStatus).toBe('empty')
+  })
+
+  it('discards a result after the layer is toggled off', async () => {
+    const slow = deferred<HabitatOpportunity[] | null>()
+    useStore.setState({ activeHive: hiveA, activeJurisdiction: 'northernIreland' })
+    vi.mocked(fetchHabitatOpportunities).mockReturnValueOnce(slow.promise)
+
+    useStore.getState().toggleHabitatOpportunities()
+    await flush()
+    useStore.getState().toggleHabitatOpportunities()
+    slow.resolve([meadowOpportunity])
+    await flush()
+
+    expect(useStore.getState().showHabitatOpportunities).toBe(false)
+    expect(useStore.getState().habitatOpportunityStatus).toBe('idle')
+    expect(useStore.getState().habitatOpportunities).toEqual([])
+  })
+
+  it('does not call the NI service for an unsupported jurisdiction', async () => {
+    useStore.setState({ activeHive: hiveA, activeJurisdiction: 'unsupported' })
+    useStore.getState().toggleHabitatOpportunities()
+    await flush()
+
+    expect(fetchHabitatOpportunities).not.toHaveBeenCalled()
+    expect(useStore.getState().habitatOpportunityStatus).toBe('unavailable')
   })
 })
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import { FORAGE, MATING_RADIUS_KILOMETRES, MAX_MARKERS, RING_KILOMETRES } from '../data/forage'
+import { HABITAT_NETWORK_CLASSES, HABITAT_NETWORKS } from '../data/habitatNetworks'
 import { captureEvent } from '../lib/analytics'
 import { POLLEN, pollenColour } from '../data/pollen'
 import { createBees, stepBee } from '../lib/beeFlights'
@@ -13,7 +14,7 @@ import { useScoredFeatures } from '../lib/useScoredFeatures'
 import { flightAvailabilityFactor, flyVerdict } from '../lib/weather'
 import { useStore } from '../store/useStore'
 import { useUiStore } from '../store/useUiStore'
-import type { LatLon } from '../types'
+import type { FeatureGeometry, LatLon } from '../types'
 import styles from './map.module.css'
 
 const MAX_FRAME_MS = 48
@@ -45,6 +46,12 @@ function flyIcon(colour: string): L.DivIcon {
 // Warm suitability ramp: amber (lower) → deep red (higher). t is 0..1.
 function droneCongregationAreaColour(t: number): string {
   return `hsl(${45 - 33 * t}, 85%, ${56 - 10 * t}%)`
+}
+
+function leafletPolygonCoordinates(
+  coordinates: Extract<FeatureGeometry, { type: 'Polygon' }>['coordinates'],
+): L.LatLngExpression[][] {
+  return coordinates.map((ring) => ring.map(([lon, lat]) => [lat, lon]))
 }
 
 function drawStaticFlights(group: L.LayerGroup, bees: Bee[], hive: LatLon): void {
@@ -80,6 +87,7 @@ export function MapView() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<L.Map | null>(null)
   const layers = useRef<{
+    habitatOpportunities: L.LayerGroup
     droneCongregationArea: L.LayerGroup
     hive: L.LayerGroup
     forage: L.LayerGroup
@@ -103,6 +111,8 @@ export function MapView() {
   const showDroneCongregationArea = useStore((s) => s.showDroneCongregationArea)
   const droneCongregationAreaCells = useStore((s) => s.droneCongregationAreaCells)
   const droneCongregationAreaStatus = useStore((s) => s.droneCongregationAreaStatus)
+  const showHabitatOpportunities = useStore((s) => s.showHabitatOpportunities)
+  const habitatOpportunities = useStore((s) => s.habitatOpportunities)
   const currentWeather = useStore((s) => s.weather.current)
   const flyRequest = useUiStore((s) => s.flyRequest)
   const scored = useScoredFeatures()
@@ -118,6 +128,8 @@ export function MapView() {
     L.control.zoom({ position: 'bottomright' }).addTo(m)
 
     layers.current = {
+      // Habitat opportunities are contextual polygons and sit below predictions and markers.
+      habitatOpportunities: L.layerGroup().addTo(m),
       // The drone congregation area grid sits under everything else so markers and rings stay legible.
       droneCongregationArea: L.layerGroup().addTo(m),
       hive: L.layerGroup().addTo(m),
@@ -221,6 +233,39 @@ export function MapView() {
     }
     map.flyTo([activeHive.lat, activeHive.lon], 13, { duration: 0.6 })
   }, [map, activeHive, showMatingRadius])
+
+  useEffect(() => {
+    if (!map || !layers.current) return
+    const group = layers.current.habitatOpportunities
+    group.clearLayers()
+    if (!showHabitatOpportunities) return
+
+    for (const opportunity of habitatOpportunities) {
+      const classMeta = HABITAT_NETWORK_CLASSES[opportunity.networkClass]
+      const habitatMeta = HABITAT_NETWORKS[opportunity.habitat]
+      const popup =
+        `<div class="pin-pop__title">${escapeMarkup(habitatMeta.label)} opportunity</div>` +
+        `<div class="pin-pop__meta">${escapeMarkup(opportunity.networkClass)}</div>` +
+        `<div class="pin-pop__meta">${escapeMarkup(classMeta.detail)}</div>` +
+        '<div class="pin-pop__meta">Decision-support mapping, not a site survey.</div>'
+      const polygons =
+        opportunity.geometry.type === 'Polygon' ? [opportunity.geometry.coordinates] : opportunity.geometry.coordinates
+
+      for (const coordinates of polygons) {
+        const polygon = L.polygon(leafletPolygonCoordinates(coordinates), {
+          color: classMeta.colour,
+          weight: 1.5,
+          opacity: 0.9,
+          fillColor: classMeta.colour,
+          fillOpacity: classMeta.fillOpacity,
+          dashArray: classMeta.dashArray,
+          bubblingMouseEvents: false,
+        })
+        polygon.bindPopup(popup)
+        polygon.addTo(group)
+      }
+    }
+  }, [map, showHabitatOpportunities, habitatOpportunities])
 
   useEffect(() => {
     if (!map || !layers.current) return

@@ -37,6 +37,15 @@ Service entry points are defined in:
 - `src/services/walesHabitats.ts` for Natural Resources Wales
 - `src/services/irelandHabitats.ts` for NPWS
 
+## Habitat opportunity mapping
+
+An optional Northern Ireland Nature Recovery Network layer can display published opportunity
+classes for lowland meadow, traditional orchard, deciduous woodland, wood pasture and parkland and
+heath. This evidence is kept separate from current habitat inventories and does not affect forage
+scores or other models. The project owner confirmed that consent has been obtained for this use;
+the integration retains an emergency build-time off switch. See
+[`habitat-networks.md`](habitat-networks.md) for the source list, consented use and terms review.
+
 ## Weather and bloom timing
 
 Open-Meteo provides current weather and daily mean temperatures for the current year plus the

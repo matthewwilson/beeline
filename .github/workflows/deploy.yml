@@ -35,6 +35,7 @@ jobs:
         env:
           VITE_POSTHOG_PROJECT_TOKEN: ${{ secrets.VITE_POSTHOG_PROJECT_TOKEN }}
           VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST }}
+          VITE_HABITAT_NETWORKS_ENABLED: 'true'
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

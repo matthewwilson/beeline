@@ -4,6 +4,7 @@ import { BeeFlights } from './BeeFlights'
 import { ConfidenceLayer } from './ConfidenceLayer'
 import { DroneCongregationAreaPanel } from './DroneCongregationAreaPanel'
 import { ForageLegend } from './ForageLegend'
+import { HabitatOpportunityLayer } from './HabitatOpportunityLayer'
 import { MatingRadius } from './MatingRadius'
 import { PollenSwatches } from './PollenSwatches'
 import { Section } from './Section'
@@ -80,6 +81,7 @@ export function MapPanel({ isDesktop, className = '', id }: MapPanelProps) {
           <BeeFlights />
           <MatingRadius />
           <DroneCongregationAreaPanel />
+          <HabitatOpportunityLayer />
         </div>
       </Section>
 

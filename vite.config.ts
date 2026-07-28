@@ -70,7 +70,7 @@ export default defineConfig({
         navigateFallback: `${BASE_PATH}index.html`,
         cleanupOutdatedCaches: true,
         // Offline is app-shell only: tiles, Overpass, national habitat services,
-        // Open-Meteo, NBN and GBIF are
+        // habitat opportunities, Open-Meteo, NBN and GBIF are
         // live third-party fetches and are deliberately never cached (stale data misleads).
         runtimeCaching: [],
       },
